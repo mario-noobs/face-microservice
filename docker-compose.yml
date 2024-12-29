@@ -29,15 +29,31 @@ services:
       timeout: 5s
       retries: 5
   
-  # face-regconition-service:
-  #   build: ./face-regconition-service
-  #   ports:
-  #     - "5000:5000"
-  #   networks:
-  #     - face
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
+  face-regconition-service:
+    build: ./face-regconition-service
+    ports:
+      - "5000:5000"
+    networks:
+      - face
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  face-reg-engine:
+    build: ./face-reg-engine
+    environment:
+      - jdbc:mysql://mysql:3306/FACE_ENGINE?allowPublicKeyRetrieval=true&useSSL=False
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root_password_secret_tcp
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+    ports:
+      - "8080:8080"
+    networks:
+      - face
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
 
   auth-service:
     build: ./auth-service
@@ -90,6 +106,21 @@ services:
       - face
     # depends_on:
     #   - gateway
+  
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: 123456789$
+    volumes:
+      - ./data:/data
+    networks:
+      - face
+    command: server /data --console-address ":9001"
 
   # gateway:
   #   image: docker.tyk.io/tyk-gateway/tyk-gateway
