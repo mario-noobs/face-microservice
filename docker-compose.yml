@@ -1,0 +1,154 @@
+services:
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password_secret_tcp
+      - MYSQL_DATABASE=todo-list
+    volumes:
+      - mysql:/var/lib/mysql
+      - ./data.sql:/docker-entrypoint-initdb.d/data.sql
+    networks:
+      - face
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis:/data
+    networks:
+      - face
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 5s
+      retries: 5
+  
+  # face-regconition-service:
+  #   build: ./face-regconition-service
+  #   ports:
+  #     - "5000:5000"
+  #   networks:
+  #     - face
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+
+  auth-service:
+    build: ./auth-service
+    environment:
+      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-auth?charset=utf8mb4&parseTime=True&loc=Local
+      - GIN_PORT=3100
+      - GRPC_PORT=3101
+      - GRPC_USER_ADDRESS=user-service:3201
+      - JWT_SECRET=very-important-please-change-it!
+    networks:
+      - face
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  user-service:
+    build: ./profile-service
+    environment:
+      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-user?charset=utf8mb4&parseTime=True&loc=Local
+      - GIN_PORT=3200
+      - GRPC_PORT=3201
+      - GRPC_AUTH_ADDRESS=auth-service:3101
+    networks:
+      - face
+    depends_on:
+      mysql:
+        condition: service_healthy
+    
+  ai-backend-service:
+    build: ./ai-backend-service
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-list?charset=utf8mb4&parseTime=True&loc=Local
+      - GIN_PORT=3000
+      - JWT_SECRET=very-important-please-change-it!
+      - GRPC_AUTH_USER_ADDRESS=auth-service:3101
+      - GRPC_PROFILE_ADDRESS=user-service:3201
+    networks:
+      - face
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  app-fe:
+    build: ./gui-app
+    ports:
+      - "80:80"
+    networks:
+      - face
+    # depends_on:
+    #   - gateway
+
+  # gateway:
+  #   image: docker.tyk.io/tyk-gateway/tyk-gateway
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./gateway/tyk.standalone.conf:/opt/tyk-gateway/tyk.conf
+  #     - ./gateway/apps:/opt/tyk-gateway/apps
+  #   networks:
+  #     - face
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+
+  # grafana:
+  #   image: grafana/grafana:11.2.0
+  #   ports:
+  #     - "3000:3000"
+  #   container_name: grafana
+  #   restart: unless-stopped
+  #   networks:
+  #     - face
+  #   volumes:
+  #     - grafana:/var/lib/grafana
+  #     - ./grafana.ini:/etc/grafana/grafana.ini
+
+  # # Install prometheus and node-exporter
+  # prometheus:
+  #   image: prom/prometheus:v2.48.0
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - todo
+  #   volumes:
+  #     - prometheus:/prometheus
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  # exporter:
+  #   image: prom/node-exporter:latest
+  #   container_name: exporter
+  #   ports:
+  #     - "9100:9100"
+  #   networks:
+  #     - face
+  #   volumes:
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /:/rootfs:ro
+  #   command:
+  #     - "--path.procfs=/host/proc"
+  #     - "--path.sysfs=/host/sys"
+  #     - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+
+networks:
+  face:
+    driver: bridge
+
+volumes:
+  mysql:
+  redis:
+  # grafana:
+  # prometheus:

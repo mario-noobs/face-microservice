@@ -1,0 +1,18 @@
+[submodule "ai-backend-service"]
+	path = ai-backend-service
+	url = https://github.com/mario-noobs/ai-backend-service
+[submodule "face-reg-engine"]
+	path = face-reg-engine
+	url = https://github.com/mario-noobs/face-reg-engine
+[submodule "face-regconition-service"]
+	path = face-regconition-service
+	url = https://github.com/mario-noobs/face-regconition-service
+[submodule "profile-service"]
+	path = profile-service
+	url = https://github.com/mario-noobs/profile-service
+[submodule "auth-service"]
+	path = auth-service
+	url = https://github.com/mario-noobs/auth-service
+[submodule "gui-app"]
+	path = gui-app
+	url = https://github.com/mario-noobs/gui-app.git
