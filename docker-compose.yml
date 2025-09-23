@@ -40,11 +40,19 @@ services:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root_password_secret_tcp
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - MINIO_URL=http://minio
+      - MINIO_PORT=9000
+      - MINIO_USERNAME=admin
+      - MINIO_PASSWORD=123456789$
+      - MINIO_BUCKET=face-bucket
+      - MINIO_AUTOCREATE=true
     networks:
       - face
     depends_on:
       mysql:
         condition: service_healthy
+      minio:
+        condition: service_started
     restart: on-failure
 
   auth-service:
@@ -76,6 +84,8 @@ services:
     
   ai-backend-service:
     build: ./ai-backend-service
+    ports:
+      - "3000:3000"
     environment:
       - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-list?charset=utf8mb4&parseTime=True&loc=Local
       - GIN_PORT=3000
@@ -103,6 +113,9 @@ services:
     environment:
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: 123456789$
+    ports:
+      - "9000:9000"   # API port for SDK/app
+      - "9001:9001"   # Console port for web UI
     volumes:
       - ./data:/data
     networks:
