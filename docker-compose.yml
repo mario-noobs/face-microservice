@@ -9,6 +9,8 @@ services:
       - ./data.sql:/docker-entrypoint-initdb.d/data.sql
     networks:
       - face
+    ports:
+      - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
@@ -20,6 +22,8 @@ services:
       - redis:/data
     networks:
       - face
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       timeout: 5s
@@ -29,6 +33,8 @@ services:
     build: ./face-regconition-service
     networks:
       - face
+    ports:
+      - "5000:5000"
     depends_on:
       redis:
         condition: service_healthy
@@ -46,8 +52,13 @@ services:
       - MINIO_PASSWORD=123456789$
       - MINIO_BUCKET=face-bucket
       - MINIO_AUTOCREATE=true
+        #- FACE_HOST_NAME=http://host.docker.internal:5000
     networks:
       - face
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       mysql:
         condition: service_healthy
