@@ -106,6 +106,10 @@ services:
       - face
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      ai-backend-service:
+        condition: service_started
+
   
   minio:
     image: quay.io/minio/minio
