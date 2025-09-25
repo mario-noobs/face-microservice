@@ -2,7 +2,9 @@ name: 🛠️ CI Pipeline
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - 30-setup-ci-pipeline
   pull_request:
     branches: [ master ]
 
