@@ -103,8 +103,11 @@ services:
       - JWT_SECRET=very-important-please-change-it!
       - GRPC_AUTH_USER_ADDRESS=auth-service:3101
       - GRPC_PROFILE_ADDRESS=user-service:3201
+      # - FACE_HOST=http://host.docker.internal:8080/face/v1/api/
     networks:
       - face
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       mysql:
         condition: service_healthy
