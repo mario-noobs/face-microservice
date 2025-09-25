@@ -22,6 +22,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./face-reg-engine/gradlew
       - name: Build & Test
         run: ./gradlew build
 
@@ -37,6 +39,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
+      - name: Debug files
+        run: ls -l
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -57,9 +61,14 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install deps
         run: |
-          npm install -g pnpm
+          corepack prepare pnpm@latest --activate
+          echo $PATH
+          pnpm --version
           pnpm install
       - name: Run lint & build
         run: |
