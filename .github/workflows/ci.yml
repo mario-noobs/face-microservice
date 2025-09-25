@@ -16,7 +16,10 @@ jobs:
       run:
         working-directory: face-reg-engine
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository at workspace root
+        uses: actions/checkout@v4
+        with:
+          path: .
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -32,7 +35,10 @@ jobs:
       run:
         working-directory: face-regconition-service
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository at workspace root
+        uses: actions/checkout@v4
+        with:
+          path: .
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -53,12 +59,15 @@ jobs:
       run:
         working-directory: gui-app
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository at workspace root
+        uses: actions/checkout@v4
+        with:
+          path: .
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install deps with pnpm
+      - name: Install dependencies with pnpm
         run: |
           corepack enable
           corepack prepare pnpm@latest --activate
