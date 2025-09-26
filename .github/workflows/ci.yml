@@ -13,6 +13,18 @@ jobs:
   java-build:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug workspace layout
+        run: |
+          echo "Current directory: $PWD"
+          echo "Listing top-level files and folders:"
+          ls -l
+          echo "Recursive listing of all files:"
+          ls -R
+          echo "Check key files:"
+          [ -f face-reg-engine/gradlew ] && echo "gradlew exists" || echo "gradlew missing"
+          [ -f face-regconition-service/requirements.txt ] && echo "requirements.txt exists" || echo "requirements.txt missing"
+          [ -f gui-app/package.json ] && echo "package.json exists" || echo "package.json missing"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -29,6 +41,18 @@ jobs:
   python-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug workspace layout
+        run: |
+          echo "Current directory: $PWD"
+          echo "Listing top-level files and folders:"
+          ls -l
+          echo "Recursive listing of all files:"
+          ls -R
+          echo "Check key files:"
+          [ -f face-reg-engine/gradlew ] && echo "gradlew exists" || echo "gradlew missing"
+          [ -f face-regconition-service/requirements.txt ] && echo "requirements.txt exists" || echo "requirements.txt missing"
+          [ -f gui-app/package.json ] && echo "package.json exists" || echo "package.json missing"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -47,6 +71,18 @@ jobs:
   node-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug workspace layout
+        run: |
+          echo "Current directory: $PWD"
+          echo "Listing top-level files and folders:"
+          ls -l
+          echo "Recursive listing of all files:"
+          ls -R
+          echo "Check key files:"
+          [ -f face-reg-engine/gradlew ] && echo "gradlew exists" || echo "gradlew missing"
+          [ -f face-regconition-service/requirements.txt ] && echo "requirements.txt exists" || echo "requirements.txt missing"
+          [ -f gui-app/package.json ] && echo "package.json exists" || echo "package.json missing"
+           
       - name: Checkout repository
         uses: actions/checkout@v4
 
