@@ -22,9 +22,7 @@ jobs:
           java-version: 17
 
       - name: Build & Test
-        run: |
-          cd face-microservice/face-reg-engine
-          ./gradlew build
+        run: ./face-reg-engine/gradlew build
 
   # --- Python (face-regconition-service) ---
   python-tests:
@@ -42,10 +40,9 @@ jobs:
 
       - name: Install dependencies & Run tests
         run: |
-          cd face-microservice/face-regconition-service
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pytest
+          pip install -r face-regconition-service/requirements.txt
+          pytest face-regconition-service
 
   # --- Node.js (gui-app) ---
   node-tests:
@@ -60,11 +57,9 @@ jobs:
 
       - name: Install dependencies & Run build
         run: |
-          cd face-microservice/gui-app
           corepack enable
           corepack prepare pnpm@latest --activate
-          pnpm install
+          pnpm install --prefix gui-app
           pnpm --version
-          pnpm lint
-          pnpm build
-
+          pnpm lint --prefix gui-app
+          pnpm build --prefix gui-app
