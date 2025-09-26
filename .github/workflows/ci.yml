@@ -12,9 +12,14 @@ jobs:
   # --- Java (face-reg-engine) ---
   java-build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: face-reg-engine
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          path: ''   # checkout into /home/runner/work/face-microservice
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -23,15 +28,19 @@ jobs:
           java-version: 17
 
       - name: Build & Test
-        working-directory: face-reg-engine
         run: ./gradlew build
 
   # --- Python (face-regconition-service) ---
   python-tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: face-regconition-service
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          path: ''   # checkout into /home/runner/work/face-microservice
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,24 +48,27 @@ jobs:
           python-version: 3.11
 
       - name: Debug files
-        run: ls -l face-regconition-service
+        run: ls -l
 
       - name: Install dependencies
-        working-directory: face-regconition-service
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run tests
-        working-directory: face-regconition-service
         run: pytest
 
   # --- Node.js (gui-app) ---
   node-tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gui-app
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          path: ''   # checkout into /home/runner/work/face-microservice
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -64,7 +76,6 @@ jobs:
           node-version: 20
 
       - name: Install dependencies with pnpm
-        working-directory: gui-app
         run: |
           corepack enable
           corepack prepare pnpm@latest --activate
@@ -72,7 +83,6 @@ jobs:
           pnpm --version
 
       - name: Run lint & build
-        working-directory: gui-app
         run: |
           pnpm lint
           pnpm build
