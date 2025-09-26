@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: ''   # checkout into /home/runner/work/face-microservice
+          path: .   # checkout directly into workspace root
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -40,7 +40,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: ''   # checkout into /home/runner/work/face-microservice
+          path: .   # checkout directly into workspace root
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -68,7 +68,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: ''   # checkout into /home/runner/work/face-microservice
+          path: .   # checkout directly into workspace root
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
