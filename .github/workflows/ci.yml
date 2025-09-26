@@ -16,17 +16,17 @@ jobs:
       run:
         working-directory: face-reg-engine
     steps:
-      - name: Checkout repository at workspace root
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: .
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
       - name: Build & Test
-        run: gradle build
+        run: ./gradlew build
 
   # --- Python (face-regconition-service) ---
   python-tests:
@@ -35,20 +35,22 @@ jobs:
       run:
         working-directory: face-regconition-service
     steps:
-      - name: Checkout repository at workspace root
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: .
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
+
       - name: Debug files
         run: ls -l
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
       - name: Run tests
         run: pytest
 
@@ -59,20 +61,21 @@ jobs:
       run:
         working-directory: gui-app
     steps:
-      - name: Checkout repository at workspace root
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          path: .
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install dependencies with pnpm
         run: |
           corepack enable
           corepack prepare pnpm@latest --activate
           pnpm install
           pnpm --version
+
       - name: Run lint & build
         run: |
           pnpm lint
