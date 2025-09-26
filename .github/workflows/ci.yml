@@ -13,7 +13,8 @@ jobs:
   java-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -22,33 +23,32 @@ jobs:
           java-version: 17
 
       - name: Build & Test
-        run: ./face-reg-engine/gradlew build
+        run: ./face-microservice/face-reg-engine/gradlew build
 
   # --- Python (face-regconition-service) ---
   python-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
 
-      - name: Debug files
-        run: ls -l
-
       - name: Install dependencies & Run tests
         run: |
           python -m pip install --upgrade pip
-          pip install -r face-regconition-service/requirements.txt
-          pytest face-regconition-service
+          pip install -r face-microservice/face-regconition-service/requirements.txt
+          pytest face-microservice/face-regconition-service
 
   # --- Node.js (gui-app) ---
   node-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -59,7 +59,7 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@latest --activate
-          pnpm install --prefix gui-app
+          pnpm install --prefix face-microservice/gui-app
           pnpm --version
-          pnpm lint --prefix gui-app
-          pnpm build --prefix gui-app
+          pnpm lint --prefix face-microservice/gui-app
+          pnpm build --prefix face-microservice/gui-app
