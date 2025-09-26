@@ -74,10 +74,16 @@ services:
       - GRPC_PORT=3101
       - GRPC_USER_ADDRESS=user-service:3201
       - JWT_SECRET=very-important-please-change-it!
+      - JWT_ACCESS_TOKEN_EXPIRY=15m
+      - JWT_REFRESH_TOKEN_EXPIRY=7d
+      - TOKEN_CLEANUP_INTERVAL=1h
+      - REDIS_URL=redis:6379
     networks:
       - face
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   user-service:
@@ -95,12 +101,11 @@ services:
     
   ai-backend-service:
     build: ./ai-backend-service
-    ports:
-      - "3000:3000"
+    # ports:
+    #   - "3000:3000"
     environment:
       - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-list?charset=utf8mb4&parseTime=True&loc=Local
       - GIN_PORT=3000
-      - JWT_SECRET=very-important-please-change-it!
       - GRPC_AUTH_USER_ADDRESS=auth-service:3101
       - GRPC_PROFILE_ADDRESS=user-service:3201
       # - FACE_HOST=http://host.docker.internal:8080/face/v1/api/
@@ -120,6 +125,8 @@ services:
       - face
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    environment:
+      - VITE_APP_API_URL=http://ai-backend-service:3000
     depends_on:
       ai-backend-service:
         condition: service_started
