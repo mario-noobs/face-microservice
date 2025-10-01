@@ -3,30 +3,27 @@ name: 🛠️ CI Pipeline
 on:
   push:
     branches:
-      - master
-      - 30-setup-ci-pipeline
+      - "release/*"
+      - develop
   pull_request:
-    branches: [ master ]
+    branches: [ develop ]
 
 jobs:
   # --- Java (face-reg-engine) ---
   java-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Debug workspace layout
-        run: |
-          echo "Current directory: $PWD"
-          echo "Listing top-level files and folders:"
-          ls -l
-          echo "Recursive listing of all files:"
-          ls -R
-          echo "Check key files:"
-          [ -f face-reg-engine/gradlew ] && echo "gradlew exists" || echo "gradlew missing"
-          [ -f face-regconition-service/requirements.txt ] && echo "requirements.txt exists" || echo "requirements.txt missing"
-          [ -f gui-app/package.json ] && echo "package.json exists" || echo "package.json missing"
-
+      
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Debug workspace layout
+        run: |
+          echo "Check key files:"
+          [ -f face-reg-engine/gradlew ] && echo "gradlew exists" || echo "gradlew missing"
+
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -35,26 +32,22 @@ jobs:
           java-version: 17
 
       - name: Build & Test
-        run: ./face-microservice/face-reg-engine/gradlew build
+        working-directory: ./face-reg-engine
+        run: ./gradlew build
 
   # --- Python (face-regconition-service) ---
   python-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Debug workspace layout
-        run: |
-          echo "Current directory: $PWD"
-          echo "Listing top-level files and folders:"
-          ls -l
-          echo "Recursive listing of all files:"
-          ls -R
-          echo "Check key files:"
-          [ -f face-reg-engine/gradlew ] && echo "gradlew exists" || echo "gradlew missing"
-          [ -f face-regconition-service/requirements.txt ] && echo "requirements.txt exists" || echo "requirements.txt missing"
-          [ -f gui-app/package.json ] && echo "package.json exists" || echo "package.json missing"
-
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Debug workspace layout
+        run: |
+          echo "Check key files:"
+          [ -f face-regconition-service/requirements.txt ] && echo "requirements.txt exists" || echo "requirements.txt missing"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -62,29 +55,25 @@ jobs:
           python-version: 3.11
 
       - name: Install dependencies & Run tests
+        working-directory: ./face-regconition-service
         run: |
           python -m pip install --upgrade pip
-          pip install -r face-microservice/face-regconition-service/requirements.txt
-          pytest face-microservice/face-regconition-service
+          pip install -r requirements.txt
+          python tests/run_tests.py
 
   # --- Node.js (gui-app) ---
   node-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Debug workspace layout
-        run: |
-          echo "Current directory: $PWD"
-          echo "Listing top-level files and folders:"
-          ls -l
-          echo "Recursive listing of all files:"
-          ls -R
-          echo "Check key files:"
-          [ -f face-reg-engine/gradlew ] && echo "gradlew exists" || echo "gradlew missing"
-          [ -f face-regconition-service/requirements.txt ] && echo "requirements.txt exists" || echo "requirements.txt missing"
-          [ -f gui-app/package.json ] && echo "package.json exists" || echo "package.json missing"
-           
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Debug workspace layout
+        run: |
+          echo "Check key files:"
+          [ -f gui-app/package.json ] && echo "package.json exists" || echo "package.json missing"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -92,10 +81,11 @@ jobs:
           node-version: 20
 
       - name: Install dependencies & Run build
+        working-directory: ./gui-app
         run: |
           corepack enable
           corepack prepare pnpm@latest --activate
-          pnpm install --prefix face-microservice/gui-app
+          pnpm install
           pnpm --version
-          pnpm lint --prefix face-microservice/gui-app
-          pnpm build --prefix face-microservice/gui-app
+          pnpm lint
+          pnpm build
