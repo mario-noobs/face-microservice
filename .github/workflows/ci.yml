@@ -27,6 +27,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -35,7 +37,7 @@ jobs:
           java-version: 17
 
       - name: Build & Test
-        run: ./face-microservice/face-reg-engine/gradlew build
+        run: ./face-reg-engine/gradlew build
 
   # --- Python (face-regconition-service) ---
   python-tests:
@@ -55,6 +57,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -64,8 +68,8 @@ jobs:
       - name: Install dependencies & Run tests
         run: |
           python -m pip install --upgrade pip
-          pip install -r face-microservice/face-regconition-service/requirements.txt
-          pytest face-microservice/face-regconition-service
+          pip install -r face-regconition-service/requirements.txt
+          pytest face-regconition-service
 
   # --- Node.js (gui-app) ---
   node-tests:
@@ -85,6 +89,8 @@ jobs:
            
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -95,7 +101,7 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@latest --activate
-          pnpm install --prefix face-microservice/gui-app
+          pnpm install --prefix gui-app
           pnpm --version
-          pnpm lint --prefix face-microservice/gui-app
-          pnpm build --prefix face-microservice/gui-app
+          pnpm lint --prefix gui-app
+          pnpm build --prefix gui-app
