@@ -21,16 +21,28 @@ The CI workflow is implemented using GitHub Actions and performs the following j
 The CI workflow runs automatically on:
 
 * Pushes to the following branches:
-
-  * `master`
-  * `30-setup-ci-pipeline` (temporary - would be better to be removed for the issue to be closed)
-* Pull requests targeting the `master` branch.
+  * `develop`
+  * `release/*` branches
+* Pull requests targeting the `develop` branch.
 
 ## Running the Workflow
 
-1. **Create or update a PR** targeting `master`.
+1. **Create or update a PR** targeting `develop`.
 2. GitHub Actions will automatically trigger the workflow.
 3. Monitor the workflow run in the **Actions** tab of the repository.
+
+### Important: Git Submodules
+
+This repository uses Git submodules for all services. The CI workflow automatically checks out submodules using:
+
+```yaml
+- name: Checkout repository
+  uses: actions/checkout@v4
+  with:
+    submodules: recursive
+```
+
+This ensures all service code is available for building and testing.
 
 ### Debugging Failures
 
@@ -45,8 +57,9 @@ This helps identify repository layout issues in the runner environment.
 
 ### Key Notes
 
-* Due to GitHub Actions checkout behavior, the repository may appear in a nested folder inside the runner workspace. The workflow explicitly uses relative paths or `--prefix` to correctly locate service directories.
-* If builds fail due to missing files, check the debug logs to verify the actual file paths in the runner workspace.
+* The repository uses Git submodules for each microservice (face-reg-engine, face-regconition-service, gui-app, auth-service, profile-service, ai-backend-service).
+* The workflow uses direct paths to submodule directories (e.g., `face-reg-engine/gradlew`, not `face-microservice/face-reg-engine/gradlew`).
+* If builds fail due to missing files, verify that submodules are being checked out correctly in the workflow.
 
 ## Contributing
 
