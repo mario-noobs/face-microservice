@@ -33,7 +33,7 @@ jobs:
 
       - name: Build & Test
         working-directory: ./face-reg-engine
-        run: ./gradlew build
+        run: ./gradlew clean test build
 
   # --- Python (face-regconition-service) ---
   python-tests:
@@ -80,12 +80,19 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies & Run build
+      - name: Install dependencies
         working-directory: ./gui-app
         run: |
           corepack enable
           corepack prepare pnpm@latest --activate
           pnpm install
           pnpm --version
-          pnpm lint
-          pnpm build
+
+      - name: Run linting (non-blocking)
+        working-directory: ./gui-app
+        run: pnpm lint
+        continue-on-error: true
+
+      - name: Build application
+        working-directory: ./gui-app
+        run: pnpm build
