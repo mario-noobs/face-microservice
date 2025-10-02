@@ -28,7 +28,7 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       timeout: 5s
       retries: 5
-  
+
   face-regconition-service:
     build: ./face-regconition-service
     networks:
@@ -38,6 +38,11 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: "{{.Name}}"
 
   face-reg-engine:
     build: ./face-reg-engine
@@ -65,6 +70,11 @@ services:
       minio:
         condition: service_started
     restart: on-failure
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: "{{.Name}}"
 
   auth-service:
     build: ./auth-service
@@ -85,6 +95,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: "{{.Name}}"
 
   user-service:
     build: ./profile-service
@@ -98,6 +113,11 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: "{{.Name}}"
     
   ai-backend-service:
     build: ./ai-backend-service
@@ -116,6 +136,11 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: "{{.Name}}"
 
   app-fe:
     build: ./gui-app
@@ -130,6 +155,11 @@ services:
     depends_on:
       ai-backend-service:
         condition: service_started
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: "{{.Name}}"
 
   
   minio:
@@ -147,6 +177,84 @@ services:
       - face
     command: server /data --console-address ":9001"
 
+  # Centralized Logging Stack with ELK
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=face-microservice-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - face
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
+
+  fluent-bit:
+    image: fluent/fluent-bit:3.1.9
+    container_name: fluent-bit
+    ports:
+      - "24224:24224"
+      - "2020:2020"
+    volumes:
+      - ./logging/fluent-bit-simple.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./logging/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+    networks:
+      - face
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    environment:
+      - FLB_CONFIG_FILE=/fluent-bit/etc/fluent-bit.conf
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a7a6311933d3503b89bc2dbc36572c4a
+    networks:
+      - face
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 512m
+
+
+
 networks:
   face:
     driver: bridge
@@ -154,4 +262,5 @@ networks:
 volumes:
   mysql:
   redis:
+  elasticsearch-data:
 

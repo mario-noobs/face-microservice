@@ -80,11 +80,11 @@ The face recognition system is divided into several services that communicate vi
    - **Command**: Configures MinIO server to use `/data` directory for file storage.
    - **Purpose**: Object storage for the system, handling file uploads and downloads.
 
-### Optional Services (Commented Out)
+### Logging Infrastructure (FEK Stack)
 
-- **Gateway (Tyk Gateway)**: API gateway for managing access to services.
-- **Grafana**: Monitoring service for visualization of metrics.
-- **Prometheus**: Metrics collector for monitoring system health.
+- **Fluent-bit**: Log collection and forwarding agent
+- **Elasticsearch**: Log storage and search engine  
+- **Kibana**: Log visualization and analysis interface
 
 ## Installation & Setup
 
