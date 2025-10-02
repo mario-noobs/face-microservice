@@ -47,7 +47,7 @@ services:
   face-reg-engine:
     build: ./face-reg-engine
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/FACE_ENGINE?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/face-db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root_password_secret_tcp
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
@@ -79,7 +79,7 @@ services:
   auth-service:
     build: ./auth-service
     environment:
-      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-auth?charset=utf8mb4&parseTime=True&loc=Local
+      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/auth-db?charset=utf8mb4&parseTime=True&loc=Local
       - GIN_PORT=3100
       - GRPC_PORT=3101
       - GRPC_USER_ADDRESS=user-service:3201
@@ -90,6 +90,8 @@ services:
       - REDIS_URL=redis:6379
     networks:
       - face
+    # ports:
+    #   - "3101:3101"
     depends_on:
       mysql:
         condition: service_healthy
@@ -104,10 +106,12 @@ services:
   user-service:
     build: ./profile-service
     environment:
-      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-user?charset=utf8mb4&parseTime=True&loc=Local
+      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/user-db?charset=utf8mb4&parseTime=True&loc=Local
       - GIN_PORT=3200
       - GRPC_PORT=3201
       - GRPC_AUTH_ADDRESS=auth-service:3101
+    # ports:
+    #   - "3201:3201"
     networks:
       - face
     depends_on:
@@ -124,7 +128,7 @@ services:
     # ports:
     #   - "3000:3000"
     environment:
-      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-list?charset=utf8mb4&parseTime=True&loc=Local
+      - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/ai-backend-service-db?charset=utf8mb4&parseTime=True&loc=Local
       - GIN_PORT=3000
       - GRPC_AUTH_USER_ADDRESS=auth-service:3101
       - GRPC_PROFILE_ADDRESS=user-service:3201
