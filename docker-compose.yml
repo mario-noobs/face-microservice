@@ -121,8 +121,8 @@ services:
     
   ai-backend-service:
     build: ./ai-backend-service
-    ports:
-      - "3000:3000"
+    # ports:
+    #   - "3000:3000"
     environment:
       - DB_DSN=root:root_password_secret_tcp@tcp(mysql:3306)/todo-list?charset=utf8mb4&parseTime=True&loc=Local
       - GIN_PORT=3000
@@ -151,7 +151,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
-      - VITE_APP_API_URL=http://localhost:3000
+      - VITE_APP_API_URL=/gateway
     depends_on:
       ai-backend-service:
         condition: service_started
