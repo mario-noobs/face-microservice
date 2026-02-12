@@ -1,0 +1,59 @@
+package com.mario.backend.users.service;
+
+import com.mario.backend.common.exception.ApiException;
+import com.mario.backend.users.dto.UpdateProfileRequest;
+import com.mario.backend.users.dto.UserResponse;
+import com.mario.backend.users.entity.User;
+import com.mario.backend.users.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+@Service
+@RequiredArgsConstructor
+public class UserService {
+
+    private final UserRepository userRepository;
+
+    public UserResponse getProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+
+        return mapToResponse(user);
+    }
+
+    @Transactional
+    public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+
+        if (StringUtils.hasText(request.getFirstName())) {
+            user.setFirstName(request.getFirstName());
+        }
+        if (StringUtils.hasText(request.getLastName())) {
+            user.setLastName(request.getLastName());
+        }
+        if (StringUtils.hasText(request.getPhone())) {
+            user.setPhone(request.getPhone());
+        }
+
+        user = userRepository.save(user);
+        return mapToResponse(user);
+    }
+
+    private UserResponse mapToResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .status(user.getStatus().name())
+                .role(user.getRole().name())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+}

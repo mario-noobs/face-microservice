@@ -1,0 +1,67 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: backend-service
+
+  # MySQL DataSource
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:backend_db}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root_password_secret_tcp}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  # JPA/Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  # Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 5000ms
+
+  # Jackson
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:dmVyeS1pbXBvcnRhbnQtcGxlYXNlLWNoYW5nZS1pdC1pbi1wcm9kdWN0aW9uLXdpdGgtYXQtbGVhc3QtMjU2LWJpdHM=}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
+# MinIO Configuration
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:admin}
+  secret-key: ${MINIO_SECRET_KEY:123456789}
+  bucket-name: ${MINIO_BUCKET:face-images}
+
+# Face Recognition Service (Python)
+face-recognition:
+  service-url: ${FACE_SERVICE_URL:http://localhost:5000}
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.mario.backend: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
