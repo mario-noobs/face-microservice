@@ -40,76 +40,141 @@ public class FaceService {
 
     @Transactional
     public FaceResponse registerFace(Long userId, String imageData) {
-        if (faceFeatureRepository.existsByUserIdAndStatus(userId, FaceFeature.FaceStatus.active)) {
-            throw new ApiException(HttpStatus.CONFLICT, "FACE_ALREADY_REGISTERED", "Face already registered for this user");
-        }
-
-        String objectName = minioService.uploadImage(userId, imageData);
-
         try {
-            String featureVector = extractFeatures(imageData);
+            String url = faceRecognitionServiceUrl + "/face/create-identity";
 
-            FaceFeature faceFeature = FaceFeature.builder()
-                    .userId(userId)
-                    .featureVector(featureVector)
-                    .status(FaceFeature.FaceStatus.active)
-                    .build();
-            faceFeatureRepository.save(faceFeature);
+            RequestBody body = RequestBody.create(
+                    objectMapper.writeValueAsString(java.util.Map.of(
+                            "userId", String.valueOf(userId),
+                            "imageBase64", imageData,
+                            "flow", "register",
+                            "requestId", java.util.UUID.randomUUID().toString(),
+                            "algorithmDet", "retinaface",
+                            "algorithmReg", "mobilenet"
+                    )),
+                    MediaType.parse("application/json")
+            );
 
-            FaceImage faceImage = FaceImage.builder()
-                    .userId(userId)
-                    .imagePath(objectName)
-                    .bucketName(minioService.getBucketName())
-                    .objectName(objectName)
-                    .build();
-            faceImageRepository.save(faceImage);
-
-            return FaceResponse.builder()
-                    .success(true)
-                    .message("Face registered successfully")
-                    .userId(userId)
+            Request request = new Request.Builder()
+                    .url(url)
+                    .post(body)
                     .build();
 
+            try (Response response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+                String code = jsonNode.has("code") ? jsonNode.get("code").asText() : "";
+                String message = jsonNode.has("message") ? jsonNode.get("message").asText() : "Unknown response";
+
+                if ("0000".equals(code)) {
+                    // Store image in MinIO
+                    String objectName = minioService.uploadImage(userId, imageData);
+
+                    FaceImage faceImage = FaceImage.builder()
+                            .userId(userId)
+                            .imagePath(objectName)
+                            .bucketName(minioService.getBucketName())
+                            .objectName(objectName)
+                            .build();
+                    faceImageRepository.save(faceImage);
+
+                    return FaceResponse.builder()
+                            .success(true)
+                            .code("0000")
+                            .message(message)
+                            .userId(userId)
+                            .build();
+                } else {
+                    throw new ApiException(HttpStatus.BAD_REQUEST, code, message);
+                }
+            }
+        } catch (ApiException e) {
+            throw e;
         } catch (Exception e) {
-            minioService.deleteImage(objectName);
+            log.error("Failed to register face for userId={}: {}", userId, e.getMessage());
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "REGISTRATION_FAILED", "Failed to register face: " + e.getMessage());
         }
     }
 
     public FaceResponse recognizeFace(Long userId, String imageData) {
-        FaceFeature storedFeature = faceFeatureRepository.findByUserIdAndStatus(userId, FaceFeature.FaceStatus.active)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "FACE_NOT_REGISTERED", "No registered face found for this user"));
-
         try {
-            double confidence = compareFaces(imageData, storedFeature.getFeatureVector());
+            String url = faceRecognitionServiceUrl + "/face/recognize";
 
-            boolean isMatch = confidence >= 0.7;
+            RequestBody body = RequestBody.create(
+                    objectMapper.writeValueAsString(java.util.Map.of(
+                            "userId", String.valueOf(userId),
+                            "imageBase64", imageData,
+                            "flow", "recognize",
+                            "requestId", java.util.UUID.randomUUID().toString(),
+                            "algorithmDet", "retinaface",
+                            "algorithmReg", "mobilenet"
+                    )),
+                    MediaType.parse("application/json")
+            );
 
-            return FaceResponse.builder()
-                    .success(isMatch)
-                    .message(isMatch ? "Face recognized successfully" : "Face recognition failed")
-                    .userId(userId)
-                    .confidence(confidence)
+            Request request = new Request.Builder()
+                    .url(url)
+                    .post(body)
                     .build();
 
+            try (Response response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+                String code = jsonNode.has("code") ? jsonNode.get("code").asText() : "";
+                String message = jsonNode.has("message") ? jsonNode.get("message").asText() : "Unknown response";
+
+                return FaceResponse.builder()
+                        .success("0000".equals(code))
+                        .message(message)
+                        .userId(userId)
+                        .code(code)
+                        .data(jsonNode.has("data") ? jsonNode.get("data") : null)
+                        .build();
+            }
         } catch (Exception e) {
+            log.error("Failed to recognize face for userId={}: {}", userId, e.getMessage());
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "RECOGNITION_FAILED", "Failed to recognize face: " + e.getMessage());
         }
     }
 
-    @Transactional
     public FaceResponse deleteFace(Long userId) {
-        FaceFeature faceFeature = faceFeatureRepository.findByUserIdAndStatus(userId, FaceFeature.FaceStatus.active)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "FACE_NOT_REGISTERED", "No registered face found for this user"));
+        try {
+            String url = faceRecognitionServiceUrl + "/face/delete-identity";
 
-        faceFeature.setStatus(FaceFeature.FaceStatus.inactive);
-        faceFeatureRepository.save(faceFeature);
+            RequestBody body = RequestBody.create(
+                    objectMapper.writeValueAsString(java.util.Map.of(
+                            "userId", String.valueOf(userId),
+                            "algorithm", "mobilenet",
+                            "requestId", java.util.UUID.randomUUID().toString()
+                    )),
+                    MediaType.parse("application/json")
+            );
 
-        return FaceResponse.builder()
-                .success(true)
-                .message("Face deleted successfully")
-                .userId(userId)
-                .build();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .delete(body)
+                    .build();
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+                String status = jsonNode.has("status") ? jsonNode.get("status").asText() : "";
+                String message = jsonNode.has("message") ? jsonNode.get("message").asText() : "Unknown response";
+
+                return FaceResponse.builder()
+                        .success("success".equals(status))
+                        .message(message)
+                        .userId(userId)
+                        .code("success".equals(status) ? "0000" : "DELETION_FAILED")
+                        .build();
+            }
+        } catch (Exception e) {
+            log.error("Failed to delete face for userId={}: {}", userId, e.getMessage());
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "DELETION_FAILED", "Failed to delete face: " + e.getMessage());
+        }
     }
 
     public FaceResponse isRegistered(Long userId) {
@@ -120,54 +185,5 @@ public class FaceService {
                 .isRegistered(registered)
                 .userId(userId)
                 .build();
-    }
-
-    private String extractFeatures(String imageData) throws IOException {
-        String url = faceRecognitionServiceUrl + "/extract";
-
-        RequestBody body = RequestBody.create(
-                objectMapper.writeValueAsString(java.util.Map.of("image_data", imageData)),
-                MediaType.parse("application/json")
-        );
-
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .build();
-
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Feature extraction failed: " + response.code());
-            }
-
-            JsonNode jsonNode = objectMapper.readTree(response.body().string());
-            return jsonNode.get("features").toString();
-        }
-    }
-
-    private double compareFaces(String imageData, String storedFeatures) throws IOException {
-        String url = faceRecognitionServiceUrl + "/compare";
-
-        RequestBody body = RequestBody.create(
-                objectMapper.writeValueAsString(java.util.Map.of(
-                        "image_data", imageData,
-                        "stored_features", storedFeatures
-                )),
-                MediaType.parse("application/json")
-        );
-
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .build();
-
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Face comparison failed: " + response.code());
-            }
-
-            JsonNode jsonNode = objectMapper.readTree(response.body().string());
-            return jsonNode.get("confidence").asDouble();
-        }
     }
 }

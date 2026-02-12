@@ -2,6 +2,7 @@ package com.mario.backend.face.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,8 @@ public class FaceResponse {
 
     private String message;
 
+    private String code;
+
     @JsonProperty("user_id")
     private Long userId;
 
@@ -25,4 +28,9 @@ public class FaceResponse {
 
     @JsonProperty("is_registered")
     private Boolean isRegistered;
+
+    @JsonProperty("registered")
+    private Boolean registered;
+
+    private JsonNode data;
 }
