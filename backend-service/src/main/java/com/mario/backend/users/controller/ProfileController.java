@@ -8,6 +8,7 @@ import com.mario.backend.users.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,7 @@ public class ProfileController {
     private final UserService userService;
 
     @PostMapping("/profile")
+    @PreAuthorize("hasAuthority('user:read_self')")
     public ResponseEntity<ApiResponse<UserResponse>> getProfile(
             @AuthenticationPrincipal AuthenticatedUser user) {
         UserResponse profile = userService.getProfile(user.getUserId());
@@ -25,6 +27,7 @@ public class ProfileController {
     }
 
     @PutMapping("/profile")
+    @PreAuthorize("hasAuthority('user:update_self')")
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody UpdateProfileRequest request) {

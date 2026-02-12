@@ -9,6 +9,7 @@ import com.mario.backend.face.service.FaceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +21,7 @@ public class FaceController {
     private final FaceService faceService;
 
     @PostMapping("/register-identity")
+    @PreAuthorize("hasAuthority('face:register')")
     public ResponseEntity<ApiResponse<FaceResponse>> registerFace(
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody FaceRegisterRequest request) {
@@ -28,6 +30,7 @@ public class FaceController {
     }
 
     @PostMapping("/recognize-identity")
+    @PreAuthorize("hasAuthority('face:recognize')")
     public ResponseEntity<ApiResponse<FaceResponse>> recognizeFace(
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody FaceRecognizeRequest request) {
@@ -36,6 +39,7 @@ public class FaceController {
     }
 
     @PostMapping("/delete-identity")
+    @PreAuthorize("hasAuthority('face:delete')")
     public ResponseEntity<ApiResponse<FaceResponse>> deleteFace(
             @AuthenticationPrincipal AuthenticatedUser user) {
         FaceResponse response = faceService.deleteFace(user.getUserId());
@@ -43,6 +47,7 @@ public class FaceController {
     }
 
     @GetMapping("/is-registered")
+    @PreAuthorize("hasAuthority('face:check')")
     public ResponseEntity<ApiResponse<FaceResponse>> isRegistered(
             @AuthenticationPrincipal AuthenticatedUser user) {
         FaceResponse response = faceService.isRegistered(user.getUserId());
