@@ -94,7 +94,7 @@ services:
         condition: service_healthy
     restart: on-failure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -115,11 +115,6 @@ services:
       redis:
         condition: service_healthy
     restart: on-failure
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # ==================== Frontend ====================
   app-fe:
