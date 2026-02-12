@@ -1,148 +1,163 @@
-# Face Microservice
+# Face Recognition System
 
-This repository contains a microservice architecture for a face recognition system, which is composed of multiple services including a face recognition engine, authentication, user profile management, and AI backend integration. The system also integrates with MySQL, Redis, Minio for storage, and includes services for monitoring, logging, and application UI. 
+A production-ready face recognition system with a simplified, scalable architecture.
 
-The following sections outline the architecture, setup, and usage of the system.
+## Architecture
 
-## Architecture Overview
+```
+┌─────────────────┐     ┌─────────────────────┐     ┌────────────────────┐
+│   Frontend      │────▶│   Backend Service   │────▶│  Face Recognition  │
+│   (React)       │     │   (Java/Spring)     │     │     (Python)       │
+│   Port: 80      │     │   Port: 8080        │     │   Port: 5000       │
+└─────────────────┘     └─────────────────────┘     └────────────────────┘
+                               │
+                    ┌──────────┼──────────┐
+                    ▼          ▼          ▼
+              ┌─────────┐ ┌─────────┐ ┌─────────┐
+              │  MySQL  │ │  Redis  │ │  MinIO  │
+              │  :3306  │ │  :6379  │ │  :9000  │
+              └─────────┘ └─────────┘ └─────────┘
+```
 
-The face recognition system is divided into several services that communicate via HTTP and gRPC, as well as utilize various data stores and external services. Below is the breakdown of each service:
+## Quick Start
 
-### 1. **MySQL**
-   - **Image**: `mysql:8.0`
-   - **Ports**: `3306:3306`
-   - **Environment Variables**: 
-     - `MYSQL_ROOT_PASSWORD`: Root password for MySQL.
-     - `MYSQL_DATABASE`: Database name for todo-list.
-   - **Healthcheck**: Ensures MySQL is responsive before other services interact with it.
-   - **Volumes**: 
-     - Persistent data storage (`mysql` volume).
-     - Initialization SQL scripts (`./data.sql`).
+```bash
+# Start all services
+docker-compose up -d
 
-### 2. **Redis**
-   - **Image**: `redis:7.4-alpine`
-   - **Ports**: `6379:6379`
-   - **Volumes**: Redis data storage (`redis` volume).
-   - **Healthcheck**: Ensures Redis is available for caching and session management.
+# Verify backend is running
+curl http://localhost:8080/ping
+# {"data":"pong"}
 
-### 3. **Face Recognition Service**
-   - **Build Directory**: `./face-regconition-service`
-   - **Ports**: `5000:5000`
-   - **Dependencies**: Relies on Redis being healthy for caching.
-   - **Purpose**: Implements the core face recognition functionality.
+# View logs
+docker-compose logs -f backend-service
 
-### 4. **Face Recognition Engine**
-   - **Build Directory**: `./face-reg-engine`
-   - **Ports**: `8080:8080`
-   - **Environment Variables**:
-     - `jdbc:mysql://mysql:3306/FACE_ENGINE`: MySQL connection string.
-     - Database credentials and configuration for Spring-based backend.
-   - **Dependencies**: MySQL must be healthy to start.
-   - **Purpose**: Provides the face recognition engine and API endpoints for face recognition operations.
+# Start with logging stack (optional)
+docker-compose --profile logging up -d
+```
 
-### 5. **Auth Service**
-   - **Build Directory**: `./auth-service`
-   - **Environment Variables**:
-     - Database connection string (`DB_DSN`) for MySQL.
-     - `JWT_SECRET`: Secret for signing JWT tokens.
-     - `GRPC_PORT`: Port for gRPC communication.
-     - `GRPC_USER_ADDRESS`: gRPC endpoint for user service.
-   - **Purpose**: Manages authentication and authorization, handling JWT generation.
+## Services
 
-### 6. **User Service**
-   - **Build Directory**: `./profile-service`
-   - **Environment Variables**:
-     - MySQL connection string (`DB_DSN`) for user data.
-     - `GRPC_PORT`: Port for gRPC communication.
-     - `GRPC_AUTH_ADDRESS`: Endpoint for auth-service.
-   - **Purpose**: Manages user profiles, including storing and retrieving user data.
+| Service | Technology | Port | Description |
+|---------|------------|------|-------------|
+| **backend-service** | Java Spring Boot 3.3 | 8080 | API Gateway, Auth, User Management, Face Operations |
+| **face-recognition-service** | Python Flask + PyTorch | 5000 | AI Face Detection & Recognition |
+| **gui-app** | React + TypeScript | 80 | Web Frontend |
+| **mysql** | MySQL 8.0 | 3306 | Primary Database |
+| **redis** | Redis 7.4 | 6379 | Token Blacklist & Cache |
+| **minio** | MinIO | 9000 | Object Storage (S3-compatible) |
 
-### 7. **AI Backend Service**
-   - **Build Directory**: `./ai-backend-service`
-   - **Ports**: `3000:3000`
-   - **Environment Variables**:
-     - `DB_DSN`: Database connection string for the AI backend.
-     - `JWT_SECRET`: Secret for JWT authentication.
-     - gRPC connections to other services (Auth, Profile).
-   - **Purpose**: Handles AI-based backend operations like processing image data or managing AI models.
+## API Endpoints
 
-### 8. **App Frontend (GUI)**
-   - **Build Directory**: `./gui-app`
-   - **Ports**: `80:80`
-   - **Purpose**: A web-based front-end interface for interacting with the face recognition service.
+### Authentication (Public)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/user/authenticate` | Login with email/password |
+| POST | `/api/v1/user/register` | Register new user |
+| POST | `/api/v1/user/logout` | Logout (blacklist token) |
+| POST | `/api/v1/user/refresh` | Refresh access token |
 
-### 9. **MinIO**
-   - **Image**: `quay.io/minio/minio`
-   - **Ports**: `9000:9000`, `9001:9001`
-   - **Environment Variables**:
-     - `MINIO_ROOT_USER`: The MinIO root user.
-     - `MINIO_ROOT_PASSWORD`: MinIO root password.
-   - **Command**: Configures MinIO server to use `/data` directory for file storage.
-   - **Purpose**: Object storage for the system, handling file uploads and downloads.
+### Protected Endpoints (Require JWT)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/profile` | Get current user profile |
+| POST | `/api/v1/face/register-identity` | Register face |
+| POST | `/api/v1/face/recognize-identity` | Recognize face |
+| POST | `/api/v1/face/delete-identity` | Delete face data |
+| GET | `/api/v1/face/is-registered` | Check if user has registered face |
+| GET | `/api/v1/audit/all` | Get audit logs |
 
-### Logging Infrastructure (FEK Stack)
+## Project Structure
 
-- **Fluent-bit**: Log collection and forwarding agent
-- **Elasticsearch**: Log storage and search engine  
-- **Kibana**: Log visualization and analysis interface
+```
+face-microservice/
+├── backend-service/          # Java Spring Boot monolith
+│   ├── src/main/java/
+│   │   └── com/mario/backend/
+│   │       ├── controller/   # REST controllers
+│   │       ├── service/      # Business logic
+│   │       ├── security/     # JWT authentication
+│   │       ├── entity/       # JPA entities
+│   │       └── repository/   # Data access
+│   ├── build.gradle
+│   └── Dockerfile
+├── face-regconition-service/ # Python AI service
+├── gui-app/                  # React frontend
+├── logging/                  # Fluent-bit configs
+├── _archive/                 # Deprecated Go services
+├── docker-compose.yml
+├── nginx.conf
+├── init.sql
+├── CLAUDE.md                 # Detailed documentation
+└── README.md
+```
 
-## Installation & Setup
+## Development
 
-### Prerequisites
-Ensure the following software is installed:
-- Docker
-- Docker Compose
+```bash
+# Backend (Java)
+cd backend-service
+gradle bootRun
 
-### Steps
-1. Clone the repository:
+# Frontend (React)
+cd gui-app
+pnpm install && pnpm dev
 
-   ```bash
-   git clone https://github.com/mario-noobs/face-microservice.git
-   cd face-microservice
-   ```
+# AI Service (Python)
+cd face-regconition-service
+pip install -r requirements.txt
+python app.py
+```
 
-2. Build the services using Docker Compose:
+## Environment Variables
 
-   ```bash
-   docker-compose build
-   ```
+```bash
+# Backend Service
+DB_HOST=mysql                 # Database host
+DB_PORT=3306                  # Database port
+DB_NAME=backend_db            # Database name
+DB_USERNAME=root              # Database user
+DB_PASSWORD=<password>        # Database password
+REDIS_HOST=redis              # Redis host
+REDIS_PORT=6379               # Redis port
+JWT_SECRET=<256-bit-secret>   # JWT signing key
+JWT_ACCESS_TOKEN_EXPIRY=15m   # Access token TTL
+JWT_REFRESH_TOKEN_EXPIRY=7d   # Refresh token TTL
+MINIO_URL=http://minio        # MinIO URL
+MINIO_PORT=9000               # MinIO port
+MINIO_ACCESS_KEY=admin        # MinIO access key
+MINIO_SECRET_KEY=<password>   # MinIO secret key
+MINIO_BUCKET=face-bucket      # MinIO bucket name
+FACE_SERVICE_URL=http://face-recognition-service:5000
+FACE_SERVICE_TIMEOUT=30000
+```
 
-3. Start the services:
+## Documentation
 
-   ```bash
-   docker-compose up
-   ```
+For comprehensive documentation including technology details, security implementation, database design, best practices, and scaling strategies, see:
 
-4. Access the following services via the exposed ports:
-   - **Face Recognition Service**: `http://localhost:5000`
-   - **Face Recognition Engine**: `http://localhost:8080`
-   - **User Service**: `http://localhost:3200`
-   - **Auth Service**: `http://localhost:3100`
-   - **Frontend App**: `http://localhost:80`
-
-5. The system will automatically initialize the databases with the data from `data.sql`.
-
-## Health Checks
-The system includes health checks for each service:
-- MySQL, Redis, Face Recognition, and other services ensure proper startup and availability before dependencies start.
-
-## Data Persistence
-- **MySQL**: Persistent volume for database storage.
-- **Redis**: Persistent volume for caching.
-- **MinIO**: Persistent file storage for object storage.
-
-## Notes
-
-- **JWT Secrets**: Change the `JWT_SECRET` environment variable to something more secure before deploying in production.
-- **Sensitive Data**: Do not expose production credentials in public repositories. Ensure `.env` files or Docker secrets are used for production environments.
+**[CLAUDE.md](./CLAUDE.md)** - Complete Technical Documentation
 
 ## Troubleshooting
 
-- If any services fail to start, check the logs using:
-  ```bash
-  docker-compose logs <service-name>
-  ```
-- If the database isn't initialized, ensure that the `data.sql` file is correctly placed and formatted.
+```bash
+# Check service health
+curl http://localhost:8080/ping
+
+# View logs
+docker-compose logs -f backend-service
+
+# Database connection test
+docker-compose exec mysql mysql -u root -p -e "SHOW DATABASES;"
+
+# Redis connection test
+docker-compose exec redis redis-cli ping
+```
+
+## Migration Notes
+
+This project has been simplified from a microservices architecture to a monolithic backend. The deprecated services (Go auth-service, profile-service, ai-backend-service, and original face-reg-engine) have been archived in `_archive/` folder for reference.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+MIT License - see [LICENSE](LICENSE) for details.
