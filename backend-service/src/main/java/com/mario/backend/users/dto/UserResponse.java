@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -28,11 +29,20 @@ public class UserResponse {
 
     private String status;
 
-    private String role;
+    private RoleInfo role;
 
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RoleInfo {
+        private String name;
+        private List<String> permissions;
+    }
 }

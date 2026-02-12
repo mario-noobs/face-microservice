@@ -1,6 +1,8 @@
 package com.mario.backend.users.service;
 
 import com.mario.backend.common.exception.ApiException;
+import com.mario.backend.rbac.entity.Permission;
+import com.mario.backend.rbac.entity.Role;
 import com.mario.backend.users.dto.UpdateProfileRequest;
 import com.mario.backend.users.dto.UserResponse;
 import com.mario.backend.users.entity.User;
@@ -10,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +47,34 @@ public class UserService {
         return mapToResponse(user);
     }
 
-    private UserResponse mapToResponse(User user) {
+    @Transactional
+    public UserResponse updateStatus(Long userId, String status) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+
+        try {
+            user.setStatus(User.UserStatus.valueOf(status));
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest("Invalid status: " + status + ". Must be one of: activated, deactivated, banned");
+        }
+
+        user = userRepository.save(user);
+        return mapToResponse(user);
+    }
+
+    public UserResponse mapToResponse(User user) {
+        Role role = user.getRole();
+        UserResponse.RoleInfo roleInfo = null;
+        if (role != null) {
+            List<String> permissions = role.getPermissions().stream()
+                    .map(Permission::getName)
+                    .toList();
+            roleInfo = UserResponse.RoleInfo.builder()
+                    .name(role.getName())
+                    .permissions(permissions)
+                    .build();
+        }
+
         return UserResponse.builder()
                 .id(user.getId())
                 .firstName(user.getFirstName())
@@ -51,7 +82,7 @@ public class UserService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .status(user.getStatus().name())
-                .role(user.getRole().name())
+                .role(roleInfo)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

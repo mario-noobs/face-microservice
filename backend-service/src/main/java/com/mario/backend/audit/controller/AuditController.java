@@ -6,6 +6,7 @@ import com.mario.backend.audit.service.AuditService;
 import com.mario.backend.common.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,6 +17,7 @@ public class AuditController {
     private final AuditService auditService;
 
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('audit:read_all')")
     public ResponseEntity<ApiResponse<PageResponse<AuditLogResponse>>> getAuditLogs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -24,6 +26,7 @@ public class AuditController {
     }
 
     @GetMapping("/user/{userId}")
+    @PreAuthorize("hasAuthority('audit:read_all') or (hasAuthority('audit:read_self') and #userId == authentication.principal.userId)")
     public ResponseEntity<ApiResponse<PageResponse<AuditLogResponse>>> getAuditLogsByUser(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,

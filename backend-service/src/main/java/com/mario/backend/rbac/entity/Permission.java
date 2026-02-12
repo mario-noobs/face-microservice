@@ -1,4 +1,4 @@
-package com.mario.backend.face.entity;
+package com.mario.backend.rbac.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -7,29 +7,26 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "face_images")
+@Table(name = "permissions")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FaceImage {
+public class Permission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(nullable = false, unique = true, length = 50)
+    private String name;
 
-    @Column(name = "image_path", nullable = false)
-    private String imagePath;
+    @Column(length = 200)
+    private String description;
 
-    @Column(name = "bucket_name", length = 100)
-    private String bucketName;
+    @Column(length = 30)
+    private String service;
 
-    @Column(name = "object_name")
-    private String objectName;
-    
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

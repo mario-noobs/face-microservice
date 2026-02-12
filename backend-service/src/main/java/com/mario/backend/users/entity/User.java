@@ -1,5 +1,6 @@
 package com.mario.backend.users.entity;
 
+import com.mario.backend.rbac.entity.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -36,10 +37,9 @@ public class User {
     @Builder.Default
     private UserStatus status = UserStatus.activated;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    @Builder.Default
-    private UserRole role = UserRole.user;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -51,9 +51,5 @@ public class User {
 
     public enum UserStatus {
         activated, deactivated, banned
-    }
-
-    public enum UserRole {
-        admin, user
     }
 }

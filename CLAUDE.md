@@ -11,11 +11,12 @@
 4. [Project Structure](#project-structure)
 5. [Getting Started](#getting-started)
 6. [API Reference](#api-reference)
-7. [Security Implementation](#security-implementation)
-8. [Database Design](#database-design)
-9. [Best Practices](#best-practices)
-10. [Scaling Strategies](#scaling-strategies)
-11. [Troubleshooting](#troubleshooting)
+7. [RBAC (Role-Based Access Control)](#rbac-role-based-access-control)
+8. [Security Implementation](#security-implementation)
+9. [Database Design](#database-design)
+10. [Best Practices](#best-practices)
+11. [Scaling Strategies](#scaling-strategies)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -62,6 +63,7 @@ A production-ready face recognition system with a clean, scalable architecture:
                                     │  ┌───────────────────────┐  │
                                     │  │ • Authentication      │  │
                                     │  │ • User Management     │  │
+                                    │  │ • RBAC (Roles/Perms)  │  │
                                     │  │ • Face Operations     │  │
                                     │  │ • Audit Logging       │  │
                                     │  └───────────────────────┘  │
@@ -194,7 +196,8 @@ face-microservice/
 │       │   │
 │       │   ├── users/                       # User management module
 │       │   │   ├── controller/
-│       │   │   │   └── ProfileController.java  # /profile
+│       │   │   │   ├── ProfileController.java  # /profile
+│       │   │   │   └── UserAdminController.java # /api/v1/admin/users
 │       │   │   ├── service/
 │       │   │   │   └── UserService.java
 │       │   │   ├── repository/
@@ -204,6 +207,25 @@ face-microservice/
 │       │   │   └── dto/
 │       │   │       ├── UserResponse.java
 │       │   │       └── UpdateProfileRequest.java
+│       │   │
+│       │   ├── rbac/                        # RBAC module (roles & permissions)
+│       │   │   ├── controller/
+│       │   │   │   └── RbacAdminController.java  # /api/v1/admin/rbac
+│       │   │   ├── service/
+│       │   │   │   └── RbacService.java
+│       │   │   ├── repository/
+│       │   │   │   ├── RoleRepository.java
+│       │   │   │   └── PermissionRepository.java
+│       │   │   ├── entity/
+│       │   │   │   ├── Role.java
+│       │   │   │   └── Permission.java
+│       │   │   └── dto/
+│       │   │       ├── RoleResponse.java
+│       │   │       ├── RoleCreateRequest.java
+│       │   │       ├── RoleUpdateRequest.java
+│       │   │       ├── PermissionResponse.java
+│       │   │       ├── AssignRoleRequest.java
+│       │   │       └── RolePermissionsRequest.java
 │       │   │
 │       │   ├── face/                        # Face recognition module
 │       │   │   ├── controller/
@@ -259,10 +281,21 @@ face-microservice/
 │
 ├── gui-app/                         # React frontend
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/               # API clients
-│   │   └── hooks/
+│   │   └── modules/
+│   │       ├── core/               # Shared layout (Header, Sidebar, Router)
+│   │       ├── auth/               # Login, Register, AuthContext, AdminRoute
+│   │       ├── home/               # Dashboard, Profile, Audit pages
+│   │       ├── face-reg/           # Face Recognition UI
+│   │       ├── admin/              # Admin module (RBAC management)
+│   │       │   ├── pages/
+│   │       │   │   ├── AdminDashboard.tsx
+│   │       │   │   ├── UserManagement.tsx
+│   │       │   │   └── RoleManagement.tsx
+│   │       │   ├── services/
+│   │       │   │   └── adminApi.ts
+│   │       │   └── models/
+│   │       │       └── admin.ts
+│   │       └── todo/               # Todo list feature
 │   ├── package.json
 │   └── Dockerfile
 │
@@ -355,31 +388,55 @@ FACE_SERVICE_TIMEOUT=30000
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/api/v1/user/authenticate` | No | Login with email/password |
-| POST | `/api/v1/user/register` | No | Register new user |
+| POST | `/api/v1/user/register` | No | Register new user (assigned BASIC_USER role) |
 | POST | `/api/v1/user/logout` | No | Invalidate access token |
-| POST | `/api/v1/user/refresh` | No | Get new access token |
+| POST | `/api/v1/user/refresh` | No | Get new access token (reloads role from DB) |
 
-### User Endpoints
+### User Profile Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/profile` | Yes | Get current user profile |
-| GET | `/api/v1/user/{id}` | Yes | Get user by ID |
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| POST | `/profile` | `user:read_self` | Get current user profile |
+| PUT | `/profile` | `user:update_self` | Update current user profile |
 
 ### Face Recognition Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/v1/face/register-identity` | Yes | Register face |
-| POST | `/api/v1/face/recognize-identity` | Yes | Recognize face |
-| POST | `/api/v1/face/delete-identity` | Yes | Delete face data |
-| GET | `/api/v1/face/is-registered` | Yes | Check registration |
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| POST | `/api/v1/face/register-identity` | `face:register` | Register face |
+| POST | `/api/v1/face/recognize-identity` | `face:recognize` | Recognize face |
+| POST | `/api/v1/face/delete-identity` | `face:delete` | Delete face data |
+| GET | `/api/v1/face/is-registered` | `face:check` | Check registration |
 
 ### Audit Endpoints
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/v1/audit/all` | Yes | List audit logs |
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/v1/audit/all` | `audit:read_all` | List all audit logs |
+| GET | `/api/v1/audit/user/{userId}` | `audit:read_all` or `audit:read_self` (own ID) | List user's audit logs |
+
+### Admin - User Management Endpoints
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/v1/admin/users` | `user:list` | List all users (paginated) |
+| GET | `/api/v1/admin/users/{id}` | `user:read_any` | Get any user by ID |
+| PUT | `/api/v1/admin/users/{id}` | `user:update_any` | Update any user profile |
+| PUT | `/api/v1/admin/users/{id}/status` | `user:update_any` | Change user status (activated/deactivated/banned) |
+
+### Admin - RBAC Management Endpoints
+
+All endpoints require `SUPERADMIN` role.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/admin/rbac/roles` | List all roles with permissions |
+| POST | `/api/v1/admin/rbac/roles` | Create a new role |
+| PUT | `/api/v1/admin/rbac/roles/{id}` | Update role name/description/default |
+| DELETE | `/api/v1/admin/rbac/roles/{id}` | Delete role (blocked if users assigned) |
+| GET | `/api/v1/admin/rbac/permissions` | List all permissions (optional `?service=` filter) |
+| PUT | `/api/v1/admin/rbac/roles/{id}/permissions` | Set permissions for a role |
+| PUT | `/api/v1/admin/rbac/users/{userId}/role` | Assign role to a user |
 
 ### Example Requests
 
@@ -410,6 +467,177 @@ curl -X POST http://localhost:8080/api/v1/face/register-identity \
   -d '{
     "imageBase64": "<base64-encoded-image>"
   }'
+```
+
+---
+
+## RBAC (Role-Based Access Control)
+
+### Overview
+
+The system uses a database-backed RBAC model with permissions embedded in JWT tokens for stateless authorization. Spring Security's `@EnableMethodSecurity` and `@PreAuthorize` annotations enforce access at the method level.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        RBAC Authorization Flow                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  1. User logs in → AuthService loads User with Role (EAGER fetch)   │
+│                                                                      │
+│  2. JWT access token generated with claims:                          │
+│     { sub: userId, email, role: "PREMIUM_USER",                      │
+│       permissions: ["face:register","face:recognize",...] }          │
+│     (Refresh token does NOT contain role/permissions)                │
+│                                                                      │
+│  3. On each request, JwtAuthenticationFilter:                        │
+│     a. Extracts role + permissions from token                        │
+│     b. Builds GrantedAuthority list:                                 │
+│        - ROLE_PREMIUM_USER  (for hasRole() checks)                   │
+│        - face:register      (for hasAuthority() checks)              │
+│        - face:recognize                                              │
+│        - ...                                                         │
+│     c. Sets AuthenticatedUser as principal                           │
+│                                                                      │
+│  4. @PreAuthorize("hasAuthority('face:register')") on controller     │
+│     method → Spring Security checks GrantedAuthority list            │
+│                                                                      │
+│  5. Role changes take effect on next token refresh                   │
+│     (refreshToken() reloads User from DB with current role)          │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Database Schema
+
+```
+┌──────────────────┐     ┌────────────────────┐     ┌──────────────────┐
+│   permissions    │     │  role_permissions   │     │      roles       │
+├──────────────────┤     ├────────────────────┤     ├──────────────────┤
+│ id (PK)          │◄────│ permission_id (FK)  │     │ id (PK)          │
+│ name (UNIQUE)    │     │ role_id (FK)        │────▶│ name (UNIQUE)    │
+│ description      │     │ PRIMARY KEY (both)  │     │ description      │
+│ service          │     └────────────────────┘     │ is_default       │
+│ created_at       │                                 │ created_at       │
+└──────────────────┘                                 │ updated_at       │
+                                                     └────────┬─────────┘
+                                                              │
+                         ┌──────────────────┐                 │
+                         │      users       │                 │
+                         ├──────────────────┤                 │
+                         │ id (PK)          │                 │
+                         │ first_name       │                 │
+                         │ last_name        │                 │
+                         │ email (UNIQUE)   │                 │
+                         │ role_id (FK)     │─────────────────┘
+                         │ status           │
+                         │ ...              │
+                         └──────────────────┘
+```
+
+### Permissions
+
+Permissions use a `service:action` naming convention. Seeded via `init.sql`.
+
+| Permission | Service | Description |
+|-----------|---------|-------------|
+| `face:register` | face | Register a face identity |
+| `face:recognize` | face | Recognize a face identity |
+| `face:delete` | face | Delete a face identity |
+| `face:check` | face | Check if face is registered |
+| `user:read_self` | user | Read own profile |
+| `user:update_self` | user | Update own profile |
+| `user:read_any` | user | Read any user profile |
+| `user:update_any` | user | Update any user profile |
+| `user:delete_any` | user | Delete any user |
+| `user:list` | user | List all users |
+| `audit:read_self` | audit | Read own audit logs |
+| `audit:read_all` | audit | Read all audit logs |
+| `rbac:manage_roles` | rbac | Create, update, delete roles |
+| `rbac:assign_roles` | rbac | Assign roles to users |
+| `rbac:manage_permissions` | rbac | Manage role permissions |
+
+### Roles
+
+| Role | Default | Permissions |
+|------|---------|-------------|
+| **SUPERADMIN** | No | All 15 permissions |
+| **PREMIUM_USER** | No | `user:read_self`, `user:update_self`, `face:register`, `face:recognize`, `face:delete`, `face:check`, `audit:read_self` (7) |
+| **BASIC_USER** | Yes | `user:read_self`, `user:update_self`, `face:check`, `audit:read_self` (4) |
+
+New users are assigned the default role (`BASIC_USER`) on registration.
+
+### Authorization Enforcement
+
+```
+Controller Level:
+┌─────────────────────────────────────────────────────────────────┐
+│ @PreAuthorize("hasRole('SUPERADMIN')")                          │
+│   → Checks for ROLE_SUPERADMIN in GrantedAuthority list         │
+│   → Used on: RbacAdminController (class-level)                  │
+│                                                                  │
+│ @PreAuthorize("hasAuthority('face:register')")                  │
+│   → Checks for 'face:register' in GrantedAuthority list         │
+│   → Used on: FaceController, AuditController, ProfileController │
+│                                                                  │
+│ SpEL with principal access:                                      │
+│ @PreAuthorize("hasAuthority('audit:read_all') or                │
+│   (hasAuthority('audit:read_self') and                           │
+│    #userId == authentication.principal.userId)")                 │
+│   → Allows users to read their own audit logs                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Backend Implementation
+
+**Entities** (`rbac/entity/`):
+- `Role.java` — `@ManyToMany(fetch=EAGER)` with `Permission` via `role_permissions` join table. Fields: id, name (unique), description, isDefault, permissions Set, timestamps.
+- `Permission.java` — Fields: id, name (unique), description, service, createdAt.
+- `User.java` — `@ManyToOne(fetch=EAGER) @JoinColumn(name="role_id") Role role`. Replaces the old `UserRole` enum.
+
+**Repositories** (`rbac/repository/`):
+- `RoleRepository` — `findByName()`, `findByIsDefaultTrue()`, `existsByName()`, `countByName()`
+- `PermissionRepository` — `findByName()`, `findByNameIn()`, `findByService()`, `existsByName()`
+
+**Service** (`rbac/service/RbacService.java`):
+- CRUD for roles (create, read, update, delete with user-count guard)
+- `setRolePermissions(roleId, permissionIds)` — replace all permissions on a role
+- `assignRoleToUser(userId, roleName)` — change a user's role
+- `getDefaultRole()` — returns the role with `isDefault=true` (fallback: BASIC_USER)
+
+**JWT integration** (`auth/security/`):
+- `JwtTokenProvider` — `generateAccessToken(userId, email, roleName, permissions)` adds `role` and `permissions` claims to access tokens only
+- `JwtAuthenticationFilter` — Extracts role/permissions from token, builds `ROLE_{name}` + permission authorities
+- `AuthenticatedUser` — Principal with `userId`, `email`, `roleName`, `permissions`, `hasPermission()`, `isSuperAdmin()`
+
+**Data seeding** (`init.sql`):
+- All permissions, roles, and role-permission mappings are seeded in `init.sql` (not Java seeders)
+- Tables created by JPA `ddl-auto: update`, data inserted by `init.sql` on first MySQL container start
+
+### Frontend Implementation
+
+**Auth context** (`auth/context/authContext.tsx`):
+- `IProfile` type includes `role: { name: string, permissions: string[] }`
+- Context provides `hasPermission(perm)`, `hasRole(name)`, `isSuperAdmin()` helpers
+
+**Route guard** (`auth/components/AdminRoute.tsx`):
+- Wraps admin routes, checks `isSuperAdmin()`, redirects non-admins to `/dashboard`
+
+**Sidebar** (`home/Sidebar.tsx`):
+- Nav items have `adminOnly: boolean` field
+- Audit and Admin items filtered out for non-superadmin users
+
+**Admin module** (`admin/`):
+- `AdminDashboard.tsx` — Overview with user/role stats and quick links
+- `UserManagement.tsx` — Paginated user table with role dropdown and status actions
+- `RoleManagement.tsx` — Expandable role list with permission toggle buttons grouped by service
+- `adminApi.ts` — API client for all admin endpoints
+
+**Routes** (`core/components/MainRouter.tsx`):
+```
+/admin          → AdminRoute guard → AdminDashboard
+/admin/users    → AdminRoute guard → UserManagement
+/admin/roles    → AdminRoute guard → RoleManagement
+/audit          → AdminRoute guard → Audit
 ```
 
 ---
