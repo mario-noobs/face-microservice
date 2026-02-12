@@ -13,12 +13,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
 public class ProfileController {
 
     private final UserService userService;
 
-    @PostMapping("/profile")
+    @PostMapping
     @PreAuthorize("hasAuthority('user:read_self')")
     public ResponseEntity<ApiResponse<UserResponse>> getProfile(
             @AuthenticationPrincipal AuthenticatedUser user) {
@@ -26,7 +27,7 @@ public class ProfileController {
         return ResponseEntity.ok(ApiResponse.success(profile));
     }
 
-    @PutMapping("/profile")
+    @PutMapping
     @PreAuthorize("hasAuthority('user:update_self')")
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @AuthenticationPrincipal AuthenticatedUser user,
