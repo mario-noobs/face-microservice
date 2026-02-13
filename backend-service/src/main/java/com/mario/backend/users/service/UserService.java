@@ -1,6 +1,7 @@
 package com.mario.backend.users.service;
 
 import com.mario.backend.common.exception.ApiException;
+import com.mario.backend.common.exception.ErrorCode;
 import com.mario.backend.rbac.entity.Permission;
 import com.mario.backend.rbac.entity.Role;
 import com.mario.backend.users.dto.UpdateProfileRequest;
@@ -8,7 +9,6 @@ import com.mario.backend.users.dto.UserResponse;
 import com.mario.backend.users.entity.User;
 import com.mario.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -23,7 +23,7 @@ public class UserService {
 
     public UserResponse getProfile(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         return mapToResponse(user);
     }
@@ -31,7 +31,7 @@ public class UserService {
     @Transactional
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         if (StringUtils.hasText(request.getFirstName())) {
             user.setFirstName(request.getFirstName());
@@ -50,12 +50,12 @@ public class UserService {
     @Transactional
     public UserResponse updateStatus(Long userId, String status) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         try {
             user.setStatus(User.UserStatus.valueOf(status));
         } catch (IllegalArgumentException e) {
-            throw ApiException.badRequest("Invalid status: " + status + ". Must be one of: activated, deactivated, banned");
+            throw new ApiException(ErrorCode.INVALID_USER_STATUS, "Invalid status: " + status + ". Must be one of: activated, deactivated, banned");
         }
 
         user = userRepository.save(user);

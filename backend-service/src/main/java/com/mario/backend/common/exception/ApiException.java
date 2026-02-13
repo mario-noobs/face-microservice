@@ -15,6 +15,18 @@ public class ApiException extends RuntimeException {
         this.code = code;
     }
 
+    public ApiException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.status = errorCode.getStatus();
+        this.code = errorCode.getCode();
+    }
+
+    public ApiException(ErrorCode errorCode, String message) {
+        super(message);
+        this.status = errorCode.getStatus();
+        this.code = errorCode.getCode();
+    }
+
     public static ApiException badRequest(String message) {
         return new ApiException(HttpStatus.BAD_REQUEST, "400", message);
     }

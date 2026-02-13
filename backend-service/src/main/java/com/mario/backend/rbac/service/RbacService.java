@@ -1,6 +1,7 @@
 package com.mario.backend.rbac.service;
 
 import com.mario.backend.common.exception.ApiException;
+import com.mario.backend.common.exception.ErrorCode;
 import com.mario.backend.rbac.dto.*;
 import com.mario.backend.rbac.entity.Permission;
 import com.mario.backend.rbac.entity.Role;
@@ -9,7 +10,6 @@ import com.mario.backend.rbac.repository.RoleRepository;
 import com.mario.backend.users.entity.User;
 import com.mario.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -37,14 +37,14 @@ public class RbacService {
 
     public RoleResponse getRoleById(Long id) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("Role not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.ROLE_NOT_FOUND));
         return mapRoleToResponse(role);
     }
 
     @Transactional
     public RoleResponse createRole(RoleCreateRequest request) {
         if (roleRepository.existsByName(request.getName())) {
-            throw ApiException.conflict("Role name already exists");
+            throw new ApiException(ErrorCode.ROLE_NAME_EXISTS);
         }
 
         Set<Permission> permissions = new HashSet<>();
@@ -71,11 +71,11 @@ public class RbacService {
     @Transactional
     public RoleResponse updateRole(Long id, RoleUpdateRequest request) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("Role not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.ROLE_NOT_FOUND));
 
         if (StringUtils.hasText(request.getName()) && !request.getName().equals(role.getName())) {
             if (roleRepository.existsByName(request.getName())) {
-                throw ApiException.conflict("Role name already exists");
+                throw new ApiException(ErrorCode.ROLE_NAME_EXISTS);
             }
             role.setName(request.getName());
         }
@@ -98,11 +98,11 @@ public class RbacService {
     @Transactional
     public void deleteRole(Long id) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("Role not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.ROLE_NOT_FOUND));
 
         long usersWithRole = userRepository.countByRoleName(role.getName());
         if (usersWithRole > 0) {
-            throw ApiException.conflict("Cannot delete role with " + usersWithRole + " assigned users");
+            throw new ApiException(ErrorCode.ROLE_HAS_USERS, "Cannot delete role with " + usersWithRole + " assigned users");
         }
 
         roleRepository.delete(role);
@@ -125,7 +125,7 @@ public class RbacService {
     @Transactional
     public RoleResponse setRolePermissions(Long roleId, RolePermissionsRequest request) {
         Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> ApiException.notFound("Role not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.ROLE_NOT_FOUND));
 
         Set<Permission> permissions = new HashSet<>(permissionRepository.findAllById(request.getPermissionIds()));
         role.setPermissions(permissions);
@@ -139,10 +139,10 @@ public class RbacService {
     @Transactional
     public void assignRoleToUser(Long userId, AssignRoleRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> ApiException.notFound("User not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
         Role role = roleRepository.findByName(request.getRoleName())
-                .orElseThrow(() -> ApiException.notFound("Role not found: " + request.getRoleName()));
+                .orElseThrow(() -> new ApiException(ErrorCode.ROLE_NOT_FOUND, "Role not found: " + request.getRoleName()));
 
         user.setRole(role);
         userRepository.save(user);

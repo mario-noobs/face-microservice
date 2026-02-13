@@ -5,6 +5,7 @@ import com.mario.backend.auth.entity.Auth;
 import com.mario.backend.auth.repository.AuthRepository;
 import com.mario.backend.auth.security.JwtTokenProvider;
 import com.mario.backend.common.exception.ApiException;
+import com.mario.backend.common.exception.ErrorCode;
 import com.mario.backend.rbac.entity.Permission;
 import com.mario.backend.rbac.entity.Role;
 import com.mario.backend.rbac.repository.RoleRepository;
@@ -12,7 +13,6 @@ import com.mario.backend.users.entity.User;
 import com.mario.backend.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +34,7 @@ public class AuthService {
     @Transactional
     public TokenResponse register(RegisterRequest request) {
         if (authRepository.existsByEmail(request.getEmail())) {
-            throw new ApiException(HttpStatus.CONFLICT, "EMAIL_EXISTS", "Email already registered");
+            throw new ApiException(ErrorCode.EMAIL_EXISTS);
         }
 
         Role defaultRole = roleRepository.findByIsDefaultTrue()
@@ -66,14 +66,14 @@ public class AuthService {
 
     public TokenResponse login(LoginRequest request) {
         Auth auth = authRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid email or password"));
+                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!BCrypt.checkpw(request.getPassword(), auth.getPassword())) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid email or password");
+            throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         User user = userRepository.findById(auth.getUserId())
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "User not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS, "User not found"));
 
         return generateTokenResponse(user);
     }
@@ -82,16 +82,16 @@ public class AuthService {
         String refreshToken = request.getRefreshToken();
 
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "Invalid or expired refresh token");
+            throw new ApiException(ErrorCode.INVALID_TOKEN, "Invalid or expired refresh token");
         }
 
         if (tokenBlacklistService.isBlacklisted(refreshToken)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "TOKEN_BLACKLISTED", "Refresh token has been revoked");
+            throw new ApiException(ErrorCode.TOKEN_BLACKLISTED, "Refresh token has been revoked");
         }
 
         String tokenType = jwtTokenProvider.getTokenType(refreshToken);
         if (!"refresh".equals(tokenType)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN_TYPE", "Expected refresh token");
+            throw new ApiException(ErrorCode.INVALID_TOKEN_TYPE, "Expected refresh token");
         }
 
         Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
@@ -100,7 +100,7 @@ public class AuthService {
 
         // Load user from DB to get current role (picks up role changes)
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "User not found"));
+                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_TOKEN, "User not found"));
 
         return generateTokenResponse(user);
     }

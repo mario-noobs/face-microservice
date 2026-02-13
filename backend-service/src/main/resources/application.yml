@@ -53,6 +53,12 @@ minio:
   secret-key: ${MINIO_SECRET_KEY:123456789}
   bucket-name: ${MINIO_BUCKET:face-images}
 
+# HTTP Client
+http-client:
+  connect-timeout: ${HTTP_CLIENT_CONNECT_TIMEOUT:30000}
+  read-timeout: ${HTTP_CLIENT_READ_TIMEOUT:60000}
+  write-timeout: ${HTTP_CLIENT_WRITE_TIMEOUT:60000}
+
 # Face Recognition Service (Python)
 face-recognition:
   service-url: ${FACE_SERVICE_URL:http://localhost:5000}
