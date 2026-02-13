@@ -31,25 +31,33 @@ public final class SensitiveDataMasker {
     private SensitiveDataMasker() {}
 
     public static String mask(Object value, String[] extraSensitiveFields) {
-        if (value == null) {
-            return "null";
+        try {
+            if (value == null) {
+                return "null";
+            }
+            if (value instanceof String s && looksLikeBase64(s)) {
+                return sha1(s);
+            }
+            if (isSimpleType(value)) {
+                return value.toString();
+            }
+            if (value instanceof Collection<?> c) {
+                return "[" + c.size() + " items]";
+            }
+            if (value instanceof Map<?, ?> m) {
+                return "{" + m.size() + " entries}";
+            }
+            if (value.getClass().isArray()) {
+                return "[array]";
+            }
+            return maskObject(value, extraSensitiveFields);
+        } catch (StackOverflowError e) {
+            return "<circular-reference>";
+        } catch (OutOfMemoryError e) {
+            return "<object-too-large>";
+        } catch (Exception e) {
+            return "<masking-failed:" + e.getClass().getSimpleName() + ">";
         }
-        if (value instanceof String s && looksLikeBase64(s)) {
-            return sha1(s);
-        }
-        if (isSimpleType(value)) {
-            return value.toString();
-        }
-        if (value instanceof Collection<?> c) {
-            return "[" + c.size() + " items]";
-        }
-        if (value instanceof Map<?, ?> m) {
-            return "{" + m.size() + " entries}";
-        }
-        if (value.getClass().isArray()) {
-            return "[array]";
-        }
-        return maskObject(value, extraSensitiveFields);
     }
 
     private static boolean isSimpleType(Object value) {
