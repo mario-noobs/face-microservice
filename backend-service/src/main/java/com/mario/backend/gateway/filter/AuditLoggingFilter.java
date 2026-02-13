@@ -3,6 +3,7 @@ package com.mario.backend.gateway.filter;
 import com.mario.backend.audit.entity.AuditLog;
 import com.mario.backend.audit.service.AuditService;
 import com.mario.backend.auth.security.AuthenticatedUser;
+import com.mario.backend.logging.context.TraceContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,6 +40,7 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
 
         request.setAttribute("requestId", requestId);
         response.setHeader("X-Request-ID", requestId);
+        TraceContext.setTraceId(requestId);
 
         try {
             filterChain.doFilter(request, response);
@@ -46,6 +48,12 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
             long duration = System.currentTimeMillis() - startTime;
 
             Long userId = extractUserId();
+            if (userId != null) {
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                String email = (auth != null && auth.getPrincipal() instanceof AuthenticatedUser u)
+                        ? u.getEmail() : null;
+                TraceContext.setUser(userId, email);
+            }
 
             AuditLog auditLog = AuditLog.builder()
                     .requestId(requestId)
@@ -65,6 +73,8 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
                     request.getRequestURI(),
                     response.getStatus(),
                     duration);
+
+            TraceContext.clear();
         }
     }
 

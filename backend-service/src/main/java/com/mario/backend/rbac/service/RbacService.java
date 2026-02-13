@@ -2,6 +2,7 @@ package com.mario.backend.rbac.service;
 
 import com.mario.backend.common.exception.ApiException;
 import com.mario.backend.common.exception.ErrorCode;
+import com.mario.backend.logging.annotation.Traceable;
 import com.mario.backend.rbac.dto.*;
 import com.mario.backend.rbac.entity.Permission;
 import com.mario.backend.rbac.entity.Role;
@@ -29,18 +30,21 @@ public class RbacService {
 
     // --- Role operations ---
 
+    @Traceable("rbac.getAllRoles")
     public List<RoleResponse> getAllRoles() {
         return roleRepository.findAll().stream()
                 .map(this::mapRoleToResponse)
                 .toList();
     }
 
+    @Traceable("rbac.getRoleById")
     public RoleResponse getRoleById(Long id) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new ApiException(ErrorCode.ROLE_NOT_FOUND));
         return mapRoleToResponse(role);
     }
 
+    @Traceable("rbac.createRole")
     @Transactional
     public RoleResponse createRole(RoleCreateRequest request) {
         if (roleRepository.existsByName(request.getName())) {
@@ -68,6 +72,7 @@ public class RbacService {
         return mapRoleToResponse(role);
     }
 
+    @Traceable("rbac.updateRole")
     @Transactional
     public RoleResponse updateRole(Long id, RoleUpdateRequest request) {
         Role role = roleRepository.findById(id)
@@ -95,6 +100,7 @@ public class RbacService {
         return mapRoleToResponse(role);
     }
 
+    @Traceable("rbac.deleteRole")
     @Transactional
     public void deleteRole(Long id) {
         Role role = roleRepository.findById(id)
@@ -110,6 +116,7 @@ public class RbacService {
 
     // --- Permission operations ---
 
+    @Traceable("rbac.getAllPermissions")
     public List<PermissionResponse> getAllPermissions(String service) {
         List<Permission> permissions;
         if (StringUtils.hasText(service)) {
@@ -122,6 +129,7 @@ public class RbacService {
                 .toList();
     }
 
+    @Traceable("rbac.setRolePermissions")
     @Transactional
     public RoleResponse setRolePermissions(Long roleId, RolePermissionsRequest request) {
         Role role = roleRepository.findById(roleId)
@@ -136,6 +144,7 @@ public class RbacService {
 
     // --- User role assignment ---
 
+    @Traceable("rbac.assignRoleToUser")
     @Transactional
     public void assignRoleToUser(Long userId, AssignRoleRequest request) {
         User user = userRepository.findById(userId)

@@ -62,12 +62,3 @@ http-client:
 # Face Recognition Service (Python)
 face-recognition:
   service-url: ${FACE_SERVICE_URL:http://localhost:5000}
-
-# Logging
-logging:
-  level:
-    root: INFO
-    com.mario.backend: DEBUG
-    org.springframework.security: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

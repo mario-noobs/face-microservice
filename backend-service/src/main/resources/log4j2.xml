@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+
+    <Properties>
+        <Property name="LOG_DIR">logs</Property>
+        <Property name="ARCHIVE_DIR">logs/archive</Property>
+        <Property name="APP_NAME">backend-service</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- Console: human-readable with trace context -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout
+                pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{trace_id}] [%X{user_id}] %logger{36} - %msg%n" />
+        </Console>
+
+        <!-- Rolling JSON file for production / log aggregation -->
+        <RollingFile name="JsonFile"
+                     fileName="${LOG_DIR}/${APP_NAME}.log"
+                     filePattern="${ARCHIVE_DIR}/${APP_NAME}-%d{yyyy-MM-dd}-%i.log.gz">
+            <JsonLayout compact="true" eventEol="true" properties="true"
+                        stacktraceAsString="true">
+                <KeyValuePair key="service" value="${APP_NAME}" />
+            </JsonLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+                <SizeBasedTriggeringPolicy size="100MB" />
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${ARCHIVE_DIR}" maxDepth="1">
+                    <IfLastModified age="30d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- Application logger -->
+        <Logger name="com.mario.backend" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="JsonFile" />
+        </Logger>
+
+        <!-- Noise suppression -->
+        <Logger name="org.hibernate" level="WARN" />
+        <Logger name="org.springframework" level="WARN" />
+        <Logger name="com.zaxxer.hikari" level="WARN" />
+        <Logger name="io.lettuce" level="WARN" />
+        <Logger name="okhttp3" level="WARN" />
+        <Logger name="com.fasterxml.jackson" level="WARN" />
+        <Logger name="io.minio" level="WARN" />
+
+        <Root level="INFO">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="JsonFile" />
+        </Root>
+    </Loggers>
+
+</Configuration>

@@ -1,6 +1,7 @@
 package com.mario.backend.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.mario.backend.logging.context.TraceContext;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,10 +15,12 @@ import lombok.NoArgsConstructor;
 public class ApiResponse<T> {
     private T data;
     private ErrorInfo error;
+    private String traceId;
 
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()
                 .data(data)
+                .traceId(TraceContext.getTraceId())
                 .build();
     }
 
@@ -27,6 +30,7 @@ public class ApiResponse<T> {
                         .code(code)
                         .message(message)
                         .build())
+                .traceId(TraceContext.getTraceId())
                 .build();
     }
 

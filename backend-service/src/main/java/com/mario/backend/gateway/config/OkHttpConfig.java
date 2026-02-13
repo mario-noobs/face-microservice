@@ -1,5 +1,6 @@
 package com.mario.backend.gateway.config;
 
+import com.mario.backend.logging.context.TraceContext;
 import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +26,15 @@ public class OkHttpConfig {
                 .connectTimeout(connectTimeout, TimeUnit.MILLISECONDS)
                 .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
                 .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
+                .addInterceptor(chain -> {
+                    String traceId = TraceContext.getTraceId();
+                    if (traceId != null) {
+                        return chain.proceed(chain.request().newBuilder()
+                                .header("X-Request-ID", traceId)
+                                .build());
+                    }
+                    return chain.proceed(chain.request());
+                })
                 .build();
     }
 }

@@ -2,6 +2,7 @@ package com.mario.backend.users.service;
 
 import com.mario.backend.common.exception.ApiException;
 import com.mario.backend.common.exception.ErrorCode;
+import com.mario.backend.logging.annotation.Traceable;
 import com.mario.backend.rbac.entity.Permission;
 import com.mario.backend.rbac.entity.Role;
 import com.mario.backend.users.dto.UpdateProfileRequest;
@@ -21,6 +22,7 @@ public class UserService {
 
     private final UserRepository userRepository;
 
+    @Traceable("user.getProfile")
     public UserResponse getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
@@ -28,6 +30,7 @@ public class UserService {
         return mapToResponse(user);
     }
 
+    @Traceable("user.updateProfile")
     @Transactional
     public UserResponse updateProfile(Long userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
@@ -47,6 +50,7 @@ public class UserService {
         return mapToResponse(user);
     }
 
+    @Traceable("user.updateStatus")
     @Transactional
     public UserResponse updateStatus(Long userId, String status) {
         User user = userRepository.findById(userId)

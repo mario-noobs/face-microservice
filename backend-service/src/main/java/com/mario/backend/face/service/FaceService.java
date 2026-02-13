@@ -4,6 +4,8 @@ import com.mario.backend.common.exception.ApiException;
 import com.mario.backend.common.exception.ErrorCode;
 import com.mario.backend.common.http.ExternalServiceResponse;
 import com.mario.backend.common.http.HttpClientService;
+import com.mario.backend.logging.annotation.Traceable;
+import com.mario.backend.logging.context.TraceContext;
 import com.mario.backend.face.dto.FaceResponse;
 import com.mario.backend.face.entity.FaceFeature;
 import com.mario.backend.face.entity.FaceImage;
@@ -18,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.util.UUID;
 
+import static java.util.Optional.ofNullable;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -31,16 +35,19 @@ public class FaceService {
     @Value("${face-recognition.service-url:http://face-recognition-service:5000}")
     private String faceRecognitionServiceUrl;
 
+    @Traceable("face.registerFace")
     @Transactional
     public FaceResponse registerFace(Long userId, String imageData) {
         try {
             String url = faceRecognitionServiceUrl + "/face/create-identity";
 
+            String requestId = ofNullable(TraceContext.getTraceId()).orElseGet(() -> UUID.randomUUID().toString());
+
             ExternalServiceResponse response = new ExternalServiceResponse(httpClientService.post(url, Map.of(
                     "userId", String.valueOf(userId),
                     "imageBase64", imageData,
                     "flow", "register",
-                    "requestId", UUID.randomUUID().toString(),
+                    "requestId", requestId,
                     "algorithmDet", "retinaface",
                     "algorithmReg", "mobilenet"
             )));
@@ -74,15 +81,18 @@ public class FaceService {
         }
     }
 
+    @Traceable("face.recognizeFace")
     public FaceResponse recognizeFace(Long userId, String imageData) {
         try {
             String url = faceRecognitionServiceUrl + "/face/recognize";
+
+            String requestId = ofNullable(TraceContext.getTraceId()).orElseGet(() -> UUID.randomUUID().toString());
 
             ExternalServiceResponse response = new ExternalServiceResponse(httpClientService.post(url, Map.of(
                     "userId", String.valueOf(userId),
                     "imageBase64", imageData,
                     "flow", "recognize",
-                    "requestId", UUID.randomUUID().toString(),
+                    "requestId", requestId,
                     "algorithmDet", "retinaface",
                     "algorithmReg", "mobilenet"
             )));
@@ -100,14 +110,17 @@ public class FaceService {
         }
     }
 
+    @Traceable("face.deleteFace")
     public FaceResponse deleteFace(Long userId) {
         try {
             String url = faceRecognitionServiceUrl + "/face/delete-identity";
 
+            String requestId = ofNullable(TraceContext.getTraceId()).orElseGet(() -> UUID.randomUUID().toString());
+
             ExternalServiceResponse response = new ExternalServiceResponse(httpClientService.delete(url, Map.of(
                     "userId", String.valueOf(userId),
                     "algorithm", "mobilenet",
-                    "requestId", UUID.randomUUID().toString()
+                    "requestId", requestId
             )));
 
             return FaceResponse.builder()
@@ -122,6 +135,7 @@ public class FaceService {
         }
     }
 
+    @Traceable("face.isRegistered")
     public FaceResponse isRegistered(Long userId) {
         boolean registered = faceFeatureRepository.existsByUserIdAndStatus(userId, FaceFeature.FaceStatus.active);
 

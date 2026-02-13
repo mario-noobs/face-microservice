@@ -2,6 +2,7 @@ package com.mario.backend.auth.service;
 
 import com.mario.backend.auth.dto.*;
 import com.mario.backend.auth.entity.Auth;
+import com.mario.backend.logging.annotation.Traceable;
 import com.mario.backend.auth.repository.AuthRepository;
 import com.mario.backend.auth.security.JwtTokenProvider;
 import com.mario.backend.common.exception.ApiException;
@@ -31,6 +32,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenBlacklistService tokenBlacklistService;
 
+    @Traceable("auth.register")
     @Transactional
     public TokenResponse register(RegisterRequest request) {
         if (authRepository.existsByEmail(request.getEmail())) {
@@ -64,6 +66,7 @@ public class AuthService {
         return generateTokenResponse(user);
     }
 
+    @Traceable("auth.login")
     public TokenResponse login(LoginRequest request) {
         Auth auth = authRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
@@ -78,6 +81,7 @@ public class AuthService {
         return generateTokenResponse(user);
     }
 
+    @Traceable("auth.refreshToken")
     public TokenResponse refreshToken(RefreshTokenRequest request) {
         String refreshToken = request.getRefreshToken();
 
@@ -105,6 +109,7 @@ public class AuthService {
         return generateTokenResponse(user);
     }
 
+    @Traceable("auth.logout")
     public void logout(LogoutRequest request) {
         String accessToken = request.getAccessToken();
 
