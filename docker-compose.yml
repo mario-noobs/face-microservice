@@ -52,6 +52,40 @@ services:
       timeout: 10s
       retries: 3
 
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: vault
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-root-token
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - face
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  vault-init:
+    image: hashicorp/vault:1.15
+    container_name: vault-init
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-root-token
+    volumes:
+      - ./vault:/vault
+    networks:
+      - face
+    depends_on:
+      vault:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/vault/dev-init.sh"]
+    restart: "no"
+
   # ==================== Backend (Java Modular Monolith) ====================
   backend-service:
     build:
@@ -83,6 +117,10 @@ services:
       - MINIO_BUCKET=face-images
       # Face Recognition Service
       - FACE_SERVICE_URL=http://face-recognition-service:5000
+      # Vault
+      - SPRING_PROFILES_ACTIVE=dev
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=dev-root-token
     networks:
       - face
     depends_on:
@@ -92,6 +130,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      vault-init:
+        condition: service_completed_successfully
     restart: on-failure
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
@@ -201,4 +241,5 @@ volumes:
   mysql:
   redis:
   minio-data:
+  vault-data:
   elasticsearch-data:

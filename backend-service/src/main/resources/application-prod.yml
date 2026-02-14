@@ -1,0 +1,23 @@
+# Prod profile - Vault with AppRole auth, stricter settings
+spring:
+  cloud:
+    vault:
+      enabled: true
+      authentication: approle
+      app-role:
+        role-id: ${VAULT_ROLE_ID}
+        secret-id: ${VAULT_SECRET_ID}
+        app-role-path: approle
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  datasource:
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+
+logging:
+  level:
+    org.springframework.cloud.vault: WARN

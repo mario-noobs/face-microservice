@@ -33,12 +33,27 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       timeout: 5000ms
+      password: ${REDIS_PASSWORD:}
 
   # Jackson
   jackson:
     serialization:
       write-dates-as-timestamps: false
     default-property-inclusion: non_null
+
+  # Vault (disabled by default, enabled via dev/prod profiles)
+  config:
+    import: optional:vault://
+  cloud:
+    vault:
+      enabled: false
+      uri: ${VAULT_ADDR:http://localhost:8200}
+      token: ${VAULT_TOKEN:}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: backend-service
+        profile-separator: /
 
 # JWT Configuration
 jwt:

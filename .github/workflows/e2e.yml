@@ -1,0 +1,67 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e-test:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build backend JAR
+        working-directory: backend-service
+        run: ./gradlew bootJar -x test
+
+      - name: Start docker-compose stack
+        run: docker compose up --build --wait -d
+        timeout-minutes: 5
+
+      - name: Wait for backend health check
+        run: |
+          echo "Waiting for backend service to be ready..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/ping > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/60 - waiting 5s..."
+            sleep 5
+          done
+          echo "Backend failed to start within timeout"
+          exit 1
+
+      - name: Run E2E tests
+        working-directory: backend-service
+        env:
+          E2E_BASE_URL: http://localhost:8080
+        run: ./gradlew e2eTest -De2e.base-url=http://localhost:8080
+
+      - name: Collect docker-compose logs on failure
+        if: failure()
+        run: docker compose logs > docker-compose-logs.txt
+
+      - name: Upload docker-compose logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-compose-logs
+          path: docker-compose-logs.txt
+
+      - name: Tear down docker-compose
+        if: always()
+        run: docker compose down -v

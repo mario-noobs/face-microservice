@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: backend-service-test
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:backend_db_test}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:test}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 60000
+      connection-timeout: 10000
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+  cloud:
+    vault:
+      enabled: false
+
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci11bml0LXRlc3RzLXRoYXQtaXMtYXQtbGVhc3QtMjU2LWJpdHMtbG9uZw==
+  access-token-expiration: 3600000
+  refresh-token-expiration: 604800000
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket-name: test-bucket
+
+http-client:
+  connect-timeout: 5000
+  read-timeout: 5000
+  write-timeout: 5000
+
+face-recognition:
+  service-url: http://localhost:5000
+
+resilience4j:
+  retry:
+    instances:
+      externalService:
+        max-attempts: 2
+        wait-duration: 100ms
+        enable-exponential-backoff: false
+        retry-exceptions:
+          - com.mario.backend.common.http.RetryableHttpException
+        ignore-exceptions:
+          - com.mario.backend.common.http.NonRetryableHttpException
+          - com.mario.backend.common.exception.ApiException
