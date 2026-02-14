@@ -1,0 +1,11 @@
+# Dev profile - enables Vault with token auth
+spring:
+  cloud:
+    vault:
+      enabled: true
+      token: ${VAULT_TOKEN:dev-root-token}
+
+logging:
+  level:
+    org.springframework.cloud.vault: DEBUG
+    org.springframework.vault: DEBUG
