@@ -31,7 +31,7 @@ public class TraceableAspect {
         try {
             operation = traceable.value().isEmpty()
                     ? signature.getDeclaringType().getSimpleName() + "." + signature.getName()
-                    : traceable.value();    
+                    : traceable.value();
 
             enrichMdcFromSecurityContext();
             TraceContext.setOperation(operation);

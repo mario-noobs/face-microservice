@@ -1,6 +1,9 @@
 package com.mario.backend.common.exception;
 
 import com.mario.backend.common.dto.ApiResponse;
+import com.mario.backend.common.http.HttpClientException;
+import com.mario.backend.common.http.NonRetryableHttpException;
+import com.mario.backend.common.http.RetryableHttpException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +62,38 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.error("403", "Access denied"));
+    }
+
+    @ExceptionHandler(RetryableHttpException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRetryableHttpException(RetryableHttpException ex) {
+        log.error("Retryable HTTP exception (retries exhausted): url={}, status={}, message={}",
+                ex.getUrl(), ex.getHttpStatusCode(), ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error(
+                        ErrorCode.EXTERNAL_SERVICE_RETRY_EXHAUSTED.getCode(),
+                        ErrorCode.EXTERNAL_SERVICE_RETRY_EXHAUSTED.getMessage()));
+    }
+
+    @ExceptionHandler(NonRetryableHttpException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNonRetryableHttpException(NonRetryableHttpException ex) {
+        log.error("Non-retryable HTTP exception: url={}, status={}, message={}",
+                ex.getUrl(), ex.getHttpStatusCode(), ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(ApiResponse.error(
+                        ErrorCode.EXTERNAL_SERVICE_BAD_RESPONSE.getCode(),
+                        ErrorCode.EXTERNAL_SERVICE_BAD_RESPONSE.getMessage()));
+    }
+
+    @ExceptionHandler(HttpClientException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpClientException(HttpClientException ex) {
+        log.error("HTTP client exception: url={}, message={}", ex.getUrl(), ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error(
+                        ErrorCode.EXTERNAL_SERVICE_RETRY_EXHAUSTED.getCode(),
+                        ErrorCode.EXTERNAL_SERVICE_RETRY_EXHAUSTED.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

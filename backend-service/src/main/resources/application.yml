@@ -62,3 +62,18 @@ http-client:
 # Face Recognition Service (Python)
 face-recognition:
   service-url: ${FACE_SERVICE_URL:http://localhost:5000}
+
+# Resilience4j Retry
+resilience4j:
+  retry:
+    instances:
+      externalService:
+        max-attempts: 5
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2.0
+        retry-exceptions:
+          - com.mario.backend.common.http.RetryableHttpException
+        ignore-exceptions:
+          - com.mario.backend.common.http.NonRetryableHttpException
+          - com.mario.backend.common.exception.ApiException

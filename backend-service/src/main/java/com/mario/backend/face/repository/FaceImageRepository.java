@@ -11,5 +11,7 @@ public interface FaceImageRepository extends JpaRepository<FaceImage, Long> {
 
     List<FaceImage> findByUserId(Long userId);
 
+    boolean existsByUserIdAndImageHash(Long userId, String imageHash);
+
     void deleteByUserId(Long userId);
 }

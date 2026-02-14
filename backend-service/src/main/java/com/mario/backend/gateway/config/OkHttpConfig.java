@@ -1,5 +1,6 @@
 package com.mario.backend.gateway.config;
 
+import com.mario.backend.face.service.IdempotencyService;
 import com.mario.backend.logging.context.TraceContext;
 import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,13 +28,16 @@ public class OkHttpConfig {
                 .readTimeout(readTimeout, TimeUnit.MILLISECONDS)
                 .writeTimeout(writeTimeout, TimeUnit.MILLISECONDS)
                 .addInterceptor(chain -> {
+                    okhttp3.Request.Builder builder = chain.request().newBuilder();
                     String traceId = TraceContext.getTraceId();
                     if (traceId != null) {
-                        return chain.proceed(chain.request().newBuilder()
-                                .header("X-Request-ID", traceId)
-                                .build());
+                        builder.header("X-Request-ID", traceId);
                     }
-                    return chain.proceed(chain.request());
+                    String idempotencyKey = IdempotencyService.getCurrentKey();
+                    if (idempotencyKey != null) {
+                        builder.header("X-Idempotency-Key", idempotencyKey);
+                    }
+                    return chain.proceed(builder.build());
                 })
                 .build();
     }

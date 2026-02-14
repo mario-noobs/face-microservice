@@ -3,7 +3,9 @@ package com.mario.backend.face.service;
 import com.mario.backend.common.exception.ApiException;
 import com.mario.backend.common.exception.ErrorCode;
 import com.mario.backend.common.http.ExternalServiceResponse;
+import com.mario.backend.common.http.HttpClientException;
 import com.mario.backend.common.http.HttpClientService;
+import com.mario.backend.common.http.NonRetryableHttpException;
 import com.mario.backend.logging.annotation.Traceable;
 import com.mario.backend.logging.context.TraceContext;
 import com.mario.backend.face.dto.FaceResponse;
@@ -31,6 +33,7 @@ public class FaceService {
     private final FaceImageRepository faceImageRepository;
     private final MinioService minioService;
     private final HttpClientService httpClientService;
+    private final IdempotencyService idempotencyService;
 
     @Value("${face-recognition.service-url:http://face-recognition-service:5000}")
     private String faceRecognitionServiceUrl;
@@ -38,9 +41,16 @@ public class FaceService {
     @Traceable("face.registerFace")
     @Transactional
     public FaceResponse registerFace(Long userId, String imageData) {
-        try {
-            String url = faceRecognitionServiceUrl + "/face/create-identity";
+        String imageHash = idempotencyService.computeImageHash(imageData);
 
+        if (faceImageRepository.existsByUserIdAndImageHash(userId, imageHash)) {
+            throw new ApiException(ErrorCode.FACE_ALREADY_REGISTERED);
+        }
+
+        try {
+            IdempotencyService.setCurrentKey(imageHash);
+
+            String url = faceRecognitionServiceUrl + "/face/create-identity";
             String requestId = ofNullable(TraceContext.getTraceId()).orElseGet(() -> UUID.randomUUID().toString());
 
             ExternalServiceResponse response = new ExternalServiceResponse(httpClientService.post(url, Map.of(
@@ -53,14 +63,26 @@ public class FaceService {
             )));
 
             if (response.isSuccess()) {
-                // Store image in MinIO
-                String objectName = minioService.uploadImage(userId, imageData);
+                String encoding = response.getData() != null && response.getData().has("face_encoding_base64")
+                        ? response.getData().get("face_encoding_base64").asText()
+                        : null;
 
+                if (encoding != null) {
+                    FaceFeature faceFeature = FaceFeature.builder()
+                            .userId(userId)
+                            .featureVector(encoding)
+                            .status(FaceFeature.FaceStatus.active)
+                            .build();
+                    faceFeatureRepository.save(faceFeature);
+                }
+
+                String objectName = minioService.uploadImage(userId, imageData);
                 FaceImage faceImage = FaceImage.builder()
                         .userId(userId)
                         .imagePath(objectName)
                         .bucketName(minioService.getBucketName())
                         .objectName(objectName)
+                        .imageHash(imageHash)
                         .build();
                 faceImageRepository.save(faceImage);
 
@@ -75,9 +97,18 @@ public class FaceService {
             }
         } catch (ApiException e) {
             throw e;
+        } catch (NonRetryableHttpException e) {
+            log.error("External service rejected face registration for userId={}: status={}, message={}",
+                    userId, e.getHttpStatusCode(), e.getMessage());
+            throw new ApiException(ErrorCode.FACE_REGISTRATION_FAILED, e.getMessage());
+        } catch (HttpClientException e) {
+            log.error("External service unavailable during face registration for userId={}: {}", userId, e.getMessage());
+            throw new ApiException(ErrorCode.EXTERNAL_SERVICE_RETRY_EXHAUSTED, e.getMessage());
         } catch (Exception e) {
             log.error("Failed to register face for userId={}: {}", userId, e.getMessage());
             throw new ApiException(ErrorCode.FACE_REGISTRATION_FAILED, "Failed to register face: " + e.getMessage());
+        } finally {
+            IdempotencyService.clearCurrentKey();
         }
     }
 
@@ -85,7 +116,6 @@ public class FaceService {
     public FaceResponse recognizeFace(Long userId, String imageData) {
         try {
             String url = faceRecognitionServiceUrl + "/face/recognize";
-
             String requestId = ofNullable(TraceContext.getTraceId()).orElseGet(() -> UUID.randomUUID().toString());
 
             ExternalServiceResponse response = new ExternalServiceResponse(httpClientService.post(url, Map.of(
@@ -104,6 +134,13 @@ public class FaceService {
                     .code(response.getCode())
                     .data(response.getData())
                     .build();
+        } catch (NonRetryableHttpException e) {
+            log.error("External service rejected face recognition for userId={}: status={}, message={}",
+                    userId, e.getHttpStatusCode(), e.getMessage());
+            throw new ApiException(ErrorCode.FACE_RECOGNITION_FAILED, e.getMessage());
+        } catch (HttpClientException e) {
+            log.error("External service unavailable during face recognition for userId={}: {}", userId, e.getMessage());
+            throw new ApiException(ErrorCode.EXTERNAL_SERVICE_RETRY_EXHAUSTED, e.getMessage());
         } catch (Exception e) {
             log.error("Failed to recognize face for userId={}: {}", userId, e.getMessage());
             throw new ApiException(ErrorCode.FACE_RECOGNITION_FAILED, "Failed to recognize face: " + e.getMessage());
@@ -111,10 +148,10 @@ public class FaceService {
     }
 
     @Traceable("face.deleteFace")
+    @Transactional
     public FaceResponse deleteFace(Long userId) {
         try {
             String url = faceRecognitionServiceUrl + "/face/delete-identity";
-
             String requestId = ofNullable(TraceContext.getTraceId()).orElseGet(() -> UUID.randomUUID().toString());
 
             ExternalServiceResponse response = new ExternalServiceResponse(httpClientService.delete(url, Map.of(
@@ -123,12 +160,27 @@ public class FaceService {
                     "requestId", requestId
             )));
 
+            if (response.isSuccess()) {
+                faceFeatureRepository.findByUserIdAndStatus(userId, FaceFeature.FaceStatus.active)
+                        .ifPresent(feature -> {
+                            feature.setStatus(FaceFeature.FaceStatus.inactive);
+                            faceFeatureRepository.save(feature);
+                        });
+            }
+
             return FaceResponse.builder()
                     .success(response.isSuccess())
                     .message(response.getMessage())
                     .userId(userId)
                     .code(response.isSuccess() ? "0000" : ErrorCode.FACE_DELETION_FAILED.getCode())
                     .build();
+        } catch (NonRetryableHttpException e) {
+            log.error("External service rejected face deletion for userId={}: status={}, message={}",
+                    userId, e.getHttpStatusCode(), e.getMessage());
+            throw new ApiException(ErrorCode.FACE_DELETION_FAILED, e.getMessage());
+        } catch (HttpClientException e) {
+            log.error("External service unavailable during face deletion for userId={}: {}", userId, e.getMessage());
+            throw new ApiException(ErrorCode.EXTERNAL_SERVICE_RETRY_EXHAUSTED, e.getMessage());
         } catch (Exception e) {
             log.error("Failed to delete face for userId={}: {}", userId, e.getMessage());
             throw new ApiException(ErrorCode.FACE_DELETION_FAILED, "Failed to delete face: " + e.getMessage());

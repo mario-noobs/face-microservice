@@ -28,6 +28,11 @@ public enum ErrorCode {
     FACE_REGISTRATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "REGISTRATION_FAILED", "Failed to register face"),
     FACE_RECOGNITION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "RECOGNITION_FAILED", "Failed to recognize face"),
     FACE_DELETION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELETION_FAILED", "Failed to delete face"),
+    FACE_ALREADY_REGISTERED(HttpStatus.CONFLICT, "FACE_ALREADY_REGISTERED", "This face image has already been registered"),
+
+    // External service errors
+    EXTERNAL_SERVICE_RETRY_EXHAUSTED(HttpStatus.SERVICE_UNAVAILABLE, "RETRY_EXHAUSTED", "External service unavailable after retries"),
+    EXTERNAL_SERVICE_BAD_RESPONSE(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_BAD_RESPONSE", "External service returned an error"),
 
     // Generic
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Internal server error");

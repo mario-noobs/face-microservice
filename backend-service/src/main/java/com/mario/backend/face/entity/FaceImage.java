@@ -7,7 +7,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "face_images")
+@Table(name = "face_images", indexes = {
+    @Index(name = "idx_face_images_image_hash", columnList = "image_hash")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -29,7 +31,10 @@ public class FaceImage {
 
     @Column(name = "object_name")
     private String objectName;
-    
+
+    @Column(name = "image_hash", length = 40)
+    private String imageHash;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
