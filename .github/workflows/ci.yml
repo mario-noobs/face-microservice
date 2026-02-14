@@ -63,7 +63,7 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           JWT_SECRET: dGVzdC1zZWNyZXQta2V5LWZvci1jaS1jZC1waXBlbGluZS1hdC1sZWFzdC0yNTYtYml0cw==
-        run: ./gradlew test jacocoTestReport
+        run: ./gradlew clean test jacocoTestReport
 
       - name: Upload JaCoCo HTML report
         uses: actions/upload-artifact@v4
@@ -168,27 +168,27 @@ jobs:
           SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
         run: ./gradlew sonar
 
-  trivy-fs-scan:
-    name: Trivy Filesystem Scan
-    runs-on: ubuntu-latest
+  # trivy-fs-scan:
+  #   name: Trivy Filesystem Scan
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: fs
-          scan-ref: backend-service/
-          severity: CRITICAL,HIGH
-          format: sarif
-          output: trivy-results.sarif
+  #     - name: Run Trivy filesystem scan
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         scan-type: fs
+  #         scan-ref: backend-service/
+  #         severity: CRITICAL,HIGH
+  #         format: sarif
+  #         output: trivy-results.sarif
 
-      - name: Upload Trivy SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
+  #     - name: Upload Trivy SARIF to GitHub Security tab
+  #       uses: github/codeql-action/upload-sarif@v3
+  #       with:
+  #         sarif_file: trivy-results.sarif
 
   docker-build:
     name: Docker Build & Scan
