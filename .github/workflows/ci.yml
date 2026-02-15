@@ -2,13 +2,11 @@ name: CI - Backend Service
 
 on:
   push:
-    branches: [develop, main]
-    paths:
-      - 'backend-service/**'
+    branches:
+      - "release/*"
+      - develop
   pull_request:
-    branches: [develop, main]
-    paths:
-      - 'backend-service/**'
+    branches: [ develop ]
 
 jobs:
   build-and-test:
