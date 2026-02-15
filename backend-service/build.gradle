@@ -3,7 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.3.4'
     id 'io.spring.dependency-management' version '1.1.6'
     id 'jacoco'
-    id 'org.sonarqube' version '5.1.0.4882'
+    id "org.sonarqube" version "7.1.0.6387"
 }
 
 group = 'com.mario'
@@ -199,15 +199,29 @@ tasks.named('check') {
     dependsOn jacocoTestCoverageVerification
 }
 
-// SonarQube
+// SonarQube - load token from .env.sonar if running locally
+def sonarEnvFile = file('.env.sonar')
+if (sonarEnvFile.exists()) {
+    sonarEnvFile.readLines().each { line ->
+        if (line && !line.startsWith('#') && line.contains('=')) {
+            def (key, value) = line.split('=', 2)
+            if (!System.getenv(key.trim())) {
+                System.setProperty(key.trim(), value.trim())
+            }
+        }
+    }
+}
+
 sonar {
     properties {
-        property 'sonar.projectKey', System.getenv('SONAR_PROJECT_KEY') ?: 'face-microservice-backend'
-        property 'sonar.organization', System.getenv('SONAR_ORGANIZATION') ?: 'face-microservice'
+        property 'sonar.projectKey', System.getenv('SONAR_PROJECT_KEY') ?: System.getProperty('SONAR_PROJECT_KEY') ?: 'mario-noobs_face-microservice'
+        property 'sonar.organization', System.getenv('SONAR_ORGANIZATION') ?: System.getProperty('SONAR_ORGANIZATION') ?: 'mario-noobs'
         property 'sonar.host.url', 'https://sonarcloud.io'
+        property 'sonar.token', System.getenv('SONAR_TOKEN') ?: System.getProperty('SONAR_TOKEN') ?: ''
         property 'sonar.sources', 'src/main/java'
         property 'sonar.tests', 'src/test/java'
-        property 'sonar.coverage.jacoco.xmlReportPaths', "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
+        property 'sonar.java.binaries', "${layout.buildDirectory.get()}/classes"
+        property 'sonar.coverage.jacoco.xmlReportPaths', "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
         property 'sonar.exclusions', '**/dto/**,**/entity/**,**/config/**,**/BackendApplication.java'
         property 'sonar.coverage.exclusions', '**/dto/**,**/entity/**,**/config/**,**/BackendApplication.java'
     }
