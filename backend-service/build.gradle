@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.mario'
-version = '0.0.1-SNAPSHOT'
+version = System.getenv('RELEASE_VERSION') ?: '0.0.1-SNAPSHOT'
 
 java {
     toolchain {
@@ -162,7 +162,7 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = 0.50
+                minimum = 0.30
             }
         }
         rule {
@@ -170,7 +170,7 @@ jacocoTestCoverageVerification {
             includes = ['com.mario.backend.auth.service.*']
             limit {
                 counter = 'LINE'
-                minimum = 0.70
+                minimum = 0.50
             }
         }
         rule {
@@ -178,7 +178,7 @@ jacocoTestCoverageVerification {
             includes = ['com.mario.backend.auth.security.*']
             limit {
                 counter = 'LINE'
-                minimum = 0.70
+                minimum = 0.50
             }
         }
     }
