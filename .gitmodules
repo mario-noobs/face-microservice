@@ -7,6 +7,6 @@
 [submodule "gui-app"]
 	path = gui-app
 	url = https://github.com/mario-noobs/gui-app.git
-[submodule "face-regconition-service"]
-	path = face-regconition-service
-	url = https://github.com/mario-noobs/face-regconition-service.git
+[submodule "face-ai-service"]
+	path = face-ai-service
+	url = https://github.com/mario-noobs/face-ai-service.git

@@ -52,6 +52,23 @@ services:
       timeout: 10s
       retries: 3
 
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - face
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 admin 123456789;
+      mc mb --ignore-existing myminio/face-models;
+      mc mb --ignore-existing myminio/face-images;
+      echo 'MinIO buckets initialized';
+      "
+    restart: "no"
+
   vault:
     image: hashicorp/vault:1.15
     container_name: vault
@@ -96,19 +113,28 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Non-secret config (hosts, ports, names)
+      # Server
       - SERVER_PORT=8080
+      # Database
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_NAME=backend_db
       - DB_USERNAME=root
+      - DB_PASSWORD=root_password_secret_tcp
+      # Redis
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_BUCKET=face-images
+      # JWT (secret must be base64 encoded, expiration in milliseconds)
+      - JWT_SECRET=dmVyeS1pbXBvcnRhbnQtcGxlYXNlLWNoYW5nZS1pdC1pbi1wcm9kdWN0aW9uLXdpdGgtYXQtbGVhc3QtMjU2LWJpdHM=
       - JWT_ACCESS_TOKEN_EXPIRATION=3600000
       - JWT_REFRESH_TOKEN_EXPIRATION=604800000
-      # Vault provides: DB_PASSWORD, JWT_SECRET, MINIO keys, Redis password, Face service URL
+      # MinIO
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=123456789
+      - MINIO_BUCKET=face-images
+      # Face Recognition Service
+      - FACE_SERVICE_URL=http://face-recognition-service:5000
       - SPRING_PROFILES_ACTIVE=dev
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=dev-root-token
@@ -132,21 +158,35 @@ services:
       retries: 3
       start_period: 60s
 
-  # ==================== AI Service (Python) ====================
+  # ==================== AI Service (Python - Stateless) ====================
   face-recognition-service:
-    build: ./face-regconition-service
+    build: ./face-ai-service
     container_name: face-recognition-service
     networks:
       - face
     ports:
       - "5000:5000"
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - FLASK_ENV=production
+      - MODEL_S3_ENDPOINT=http://minio:9000
+      - MODEL_S3_ACCESS_KEY=admin
+      - MODEL_S3_SECRET_KEY=123456789
+      - MODEL_S3_BUCKET=face-models
+      - MODEL_CACHE_DIR=/app/model_cache
+      - ENABLED_MODELS=retinaface_mobilenet,facenet_mobilenet
+      - LOG_LEVEL=INFO
+    volumes:
+      - face-model-cache:/app/model_cache
     depends_on:
-      redis:
+      minio:
         condition: service_healthy
     restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   # ==================== Frontend ====================
   app-fe:
@@ -235,3 +275,4 @@ volumes:
   minio-data:
   vault-data:
   elasticsearch-data:
+  face-model-cache:
