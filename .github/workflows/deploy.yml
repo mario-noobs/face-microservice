@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      service:
+        description: "Service to deploy (or 'all')"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - backend-service
+          - face-recognition-service
+          - gui-app
+      image_tag:
+        description: "Image tag to deploy (e.g. sha-abc1234)"
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    uses: mario-noobs/ci-baseline/.github/workflows/_deploy.yml@main
+    with:
+      environment: ${{ inputs.environment }}
+      service: ${{ inputs.service }}
+      image_tag: ${{ inputs.image_tag }}
+      ci_scripts_path: ci-scripts
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}

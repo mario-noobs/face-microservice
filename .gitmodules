@@ -1,3 +1,12 @@
 [submodule "ci-scripts/baseline"]
 	path = ci-scripts/baseline
 	url = https://github.com/mario-noobs/ci-baseline.git
+[submodule "backend-service"]
+	path = backend-service
+	url = https://github.com/mario-noobs/backend-service.git
+[submodule "gui-app"]
+	path = gui-app
+	url = https://github.com/mario-noobs/gui-app.git
+[submodule "face-regconition-service"]
+	path = face-regconition-service
+	url = https://github.com/mario-noobs/face-regconition-service.git
