@@ -1,0 +1,13 @@
+---
+environment: staging
+domain: "staging.face-app.example.com"
+ssl_enabled: true
+
+# Resource tuning
+mysql_buffer_pool_size: "256M"
+mysql_max_connections: 100
+redis_maxmemory: "128mb"
+swap_size_mb: 2048
+
+# Deploy settings
+force_pull: true

@@ -1,0 +1,3 @@
+[submodule "ci-scripts/baseline"]
+	path = ci-scripts/baseline
+	url = https://github.com/mario-noobs/ci-baseline.git

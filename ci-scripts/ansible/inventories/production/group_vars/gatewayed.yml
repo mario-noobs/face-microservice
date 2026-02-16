@@ -1,0 +1,7 @@
+---
+# SSH ProxyCommand for jump host access
+# Uncomment and configure if hosts are behind a bastion:
+#
+# ansible_ssh_common_args: >-
+#   -o ProxyCommand="ssh -o StrictHostKeyChecking=no -W %h:%p -q jump@BASTION_IP"
+#   -o StrictHostKeyChecking=no

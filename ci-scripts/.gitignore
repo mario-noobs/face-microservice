@@ -1,0 +1,35 @@
+# Ansible
+*.retry
+*.pyc
+__pycache__/
+
+# Vault passwords
+.vault_pass
+vault-password.txt
+
+# SSH keys
+*.pem
+id_rsa*
+!*.pub
+
+# Local overrides
+*.local
+*.override
+
+# Dumps
+dumps/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python venv
+venv/
+.venv/

@@ -1,0 +1,13 @@
+---
+environment: dev
+domain: "dev.face-app.example.com"
+ssl_enabled: true
+
+# Resource tuning
+mysql_buffer_pool_size: "128M"
+mysql_max_connections: 50
+redis_maxmemory: "64mb"
+swap_size_mb: 2048
+
+# Deploy settings
+force_pull: true

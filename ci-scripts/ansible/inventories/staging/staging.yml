@@ -1,0 +1,8 @@
+---
+all:
+  children:
+    app_servers:
+      hosts:
+        staging-server-1:
+          ansible_host: "REPLACE_WITH_STAGING_IP"
+          ansible_user: "{{ deploy_user }}"

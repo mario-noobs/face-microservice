@@ -1,0 +1,8 @@
+---
+all:
+  children:
+    app_servers:
+      hosts:
+        dev-server-1:
+          ansible_host: "REPLACE_WITH_DEV_IP"
+          ansible_user: "{{ deploy_user }}"

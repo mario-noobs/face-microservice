@@ -1,0 +1,99 @@
+---
+app_services:
+  backend-service:
+    image: "{{ registry }}/backend-service"
+    tag: "latest"
+    port: 8080
+    health_check: "/ping"
+    health_check_interval: 30
+    env:
+      SPRING_PROFILES_ACTIVE: "staging"
+      SERVER_PORT: "8080"
+      DB_HOST: "mysql"
+      DB_PORT: "3306"
+      DB_NAME: "backend_db"
+      DB_USERNAME: "root"
+      DB_PASSWORD: "{{ vault_db_password }}"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      JWT_SECRET: "{{ vault_jwt_secret }}"
+      JWT_ACCESS_TOKEN_EXPIRATION: "3600000"
+      JWT_REFRESH_TOKEN_EXPIRATION: "604800000"
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_ACCESS_KEY: "{{ vault_minio_access_key }}"
+      MINIO_SECRET_KEY: "{{ vault_minio_secret_key }}"
+      MINIO_BUCKET: "face-images"
+      FACE_SERVICE_URL: "http://face-recognition-service:5000"
+    resources:
+      memory: "768M"
+    depends_on:
+      - mysql
+      - redis
+      - minio
+    java_opts: "-Xmx512m -Xms256m -XX:+UseG1GC"
+
+  face-recognition-service:
+    image: "{{ registry }}/face-recognition-service"
+    tag: "latest"
+    port: 5000
+    env:
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+    resources:
+      memory: "2048M"
+    depends_on:
+      - redis
+
+  gui-app:
+    image: "{{ registry }}/gui-app"
+    tag: "latest"
+    port: 80
+    resources:
+      memory: "128M"
+    depends_on:
+      - backend-service
+
+infra_services:
+  mysql:
+    enabled: "{{ has_mysql }}"
+    image: "mysql:8.0"
+    port: 3306
+    env:
+      MYSQL_ROOT_PASSWORD: "{{ vault_db_password }}"
+      MYSQL_DATABASE: "backend_db"
+    volumes:
+      - "mysql_data:/var/lib/mysql"
+    command: >-
+      --innodb-buffer-pool-size={{ mysql_buffer_pool_size }}
+      --max-connections={{ mysql_max_connections }}
+    resources:
+      memory: "768M"
+    health_check_cmd: "mysqladmin ping -h localhost"
+
+  redis:
+    enabled: "{{ has_redis }}"
+    image: "redis:7.4-alpine"
+    port: 6379
+    command: "redis-server --maxmemory {{ redis_maxmemory }} --maxmemory-policy allkeys-lru"
+    volumes:
+      - "redis_data:/data"
+    resources:
+      memory: "128M"
+    health_check_cmd: "redis-cli ping"
+
+  minio:
+    enabled: "{{ has_minio }}"
+    image: "quay.io/minio/minio"
+    port: 9000
+    console_port: 9001
+    env:
+      MINIO_ROOT_USER: "{{ vault_minio_access_key }}"
+      MINIO_ROOT_PASSWORD: "{{ vault_minio_secret_key }}"
+    volumes:
+      - "minio_data:/data"
+    command: "server /data --console-address ':9001'"
+    resources:
+      memory: "256M"
+    health_check_cmd: "curl -f http://localhost:9000/minio/health/live"

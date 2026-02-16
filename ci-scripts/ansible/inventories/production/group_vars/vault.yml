@@ -1,0 +1,10 @@
+---
+# Encrypt this file with: ansible-vault encrypt vault.yml
+# Replace placeholder values with actual secrets before encrypting
+
+vault_db_password: "CHANGE_ME_prod_db_password"
+vault_jwt_secret: "CHANGE_ME_prod_jwt_secret_at_least_256_bits"
+vault_minio_access_key: "CHANGE_ME_prod_minio_access"
+vault_minio_secret_key: "CHANGE_ME_prod_minio_secret"
+vault_registry_username: "CHANGE_ME_github_username"
+vault_registry_password: "CHANGE_ME_github_pat"
