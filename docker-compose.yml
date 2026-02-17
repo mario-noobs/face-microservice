@@ -8,7 +8,6 @@ services:
       - MYSQL_DATABASE=backend_db
     volumes:
       - mysql:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - face
     ports:
