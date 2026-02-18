@@ -103,6 +103,31 @@ services:
     entrypoint: ["/bin/sh", "/vault/dev-init.sh"]
     restart: "no"
 
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - face
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - face
+
   # ==================== Backend (Java Modular Monolith) ====================
   backend-service:
     build:
@@ -137,6 +162,21 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=dev-root-token
+      # RabbitMQ
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
+      # Mail (Gmail SMTP)
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - EMAIL_FROM=${MAIL_USERNAME}
+      # Elasticsearch
+      - ELASTICSEARCH_URIS=http://elasticsearch:9200
+      # Alerts
+      - ALERT_RECIPIENTS=${ALERT_RECIPIENTS}
 
     networks:
       - face
@@ -149,6 +189,10 @@ services:
         condition: service_healthy
       vault-init:
         condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
     restart: on-failure
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
@@ -208,8 +252,6 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: elasticsearch
-    profiles:
-      - logging
     environment:
       - node.name=elasticsearch
       - cluster.name=face-microservice-cluster
@@ -274,4 +316,5 @@ volumes:
   minio-data:
   vault-data:
   elasticsearch-data:
+  rabbitmq-data:
   face-model-cache:

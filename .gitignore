@@ -10,3 +10,5 @@ data/face-bucket/RECOGNIZE_transaction_faceengines2_20241229105137_e532qos8jjM2.
 data/.minio.sys/
 
 *.1
+
+.env

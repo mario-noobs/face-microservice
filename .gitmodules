@@ -10,3 +10,6 @@
 [submodule "face-ai-service"]
 	path = face-ai-service
 	url = https://github.com/mario-noobs/face-ai-service.git
+[submodule "email-service"]
+	path = email-service
+	url = https://github.com/mario-noobs/email-service.git
