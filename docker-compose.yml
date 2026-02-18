@@ -119,15 +119,6 @@ services:
       timeout: 10s
       retries: 5
 
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: mailhog
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    networks:
-      - face
-
   # ==================== Backend (Java Modular Monolith) ====================
   backend-service:
     build:
