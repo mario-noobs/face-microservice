@@ -20,7 +20,8 @@ resources:
   - apps/frontend/configmap-nginx.yaml
   # Init Jobs
   - jobs/db-init-job.yaml
-  - jobs/db-init-sql.yaml
+  - jobs/db-migration-dev.yaml
+  - jobs/db-migration-common.yaml
   - jobs/minio-init-job.yaml
   # Ingress
   - ingress.yaml

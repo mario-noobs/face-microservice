@@ -17,14 +17,33 @@ spec:
         - name: wait-for-mysql
           image: busybox:1.36
           command: ['sh', '-c', 'until nc -z mysql.face-infra.svc.cluster.local 3306; do echo "Waiting for MySQL..."; sleep 3; done']
-      containers:
-        - name: db-init
-          image: mysql:8.0
+        - name: download-mysql-driver
+          image: liquibase/liquibase:4.25
           command:
             - sh
             - -c
             - |
-              mysql -h mysql.face-infra.svc.cluster.local -u root -p"$MYSQL_ROOT_PASSWORD" backend_db < /sql/init.sql
+              curl -sL https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar \
+                -o /liquibase/classpath/mysql-connector-j.jar
+          volumeMounts:
+            - name: driver
+              mountPath: /liquibase/classpath
+      containers:
+        - name: liquibase
+          image: liquibase/liquibase:4.25
+          command:
+            - sh
+            - -c
+            - |
+              liquibase \
+                --classpath=/liquibase/classpath/mysql-connector-j.jar \
+                --driver=com.mysql.cj.jdbc.Driver \
+                --url="jdbc:mysql://mysql.face-infra.svc.cluster.local:3306/backend_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true" \
+                --username=root \
+                --password="$MYSQL_ROOT_PASSWORD" \
+                --changeLogFile=dev/masterChangeLog.xml \
+                --searchPath=/liquibase/changelog \
+                update
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -32,9 +51,18 @@ spec:
                   name: backend-secret
                   key: DB_PASSWORD
           volumeMounts:
-            - name: sql
-              mountPath: /sql
+            - name: driver
+              mountPath: /liquibase/classpath
+            - name: migration-dev
+              mountPath: /liquibase/changelog/dev
+            - name: migration-common
+              mountPath: /liquibase/changelog/common
       volumes:
-        - name: sql
+        - name: driver
+          emptyDir: {}
+        - name: migration-dev
           configMap:
-            name: db-init-sql
+            name: db-migration-dev
+        - name: migration-common
+          configMap:
+            name: db-migration-common
