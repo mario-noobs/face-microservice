@@ -24,10 +24,32 @@ spec:
             - sh
             - -c
             - |
+              set -e
               mc alias set myminio http://minio.face-infra.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+
+              # Create buckets
               mc mb --ignore-existing myminio/face-models
               mc mb --ignore-existing myminio/face-images
-              echo "MinIO buckets initialized"
+              echo "Buckets created."
+
+              # Download and upload model files from GitHub
+              GITHUB_BASE="https://github.com/mario-noobs/face-regconition-service/raw/develop/model_data"
+              MODELS="Retinaface_mobilenet0.25.pth facenet_inception_resnetv1.pth facenet_mobilenet.pth facenet_mobilenet_1.pth facenet_mobilenet_2.pth"
+
+              for model in $MODELS; do
+                if mc stat myminio/face-models/models/$model >/dev/null 2>&1; then
+                  echo "Model $model already exists, skipping."
+                else
+                  echo "Downloading $model from GitHub..."
+                  curl -fSL "$GITHUB_BASE/$model" -o "/tmp/$model"
+                  echo "Uploading $model to MinIO..."
+                  mc cp "/tmp/$model" myminio/face-models/models/$model
+                  rm -f "/tmp/$model"
+                  echo "$model uploaded."
+                fi
+              done
+
+              echo "MinIO initialization complete."
           env:
             - name: MINIO_ROOT_USER
               valueFrom:
