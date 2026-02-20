@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  # Backend
+  - apps/backend/deployment.yaml
+  - apps/backend/service.yaml
+  - apps/backend/configmap.yaml
+  - apps/backend/hpa.yaml
+  # Face Recognition Service
+  - apps/face-service/deployment.yaml
+  - apps/face-service/service.yaml
+  - apps/face-service/configmap.yaml
+  - apps/face-service/hpa.yaml
+  - apps/face-service/pvc.yaml
+  # Frontend
+  - apps/frontend/deployment.yaml
+  - apps/frontend/service.yaml
+  - apps/frontend/configmap-nginx.yaml
+  # Init Jobs
+  - jobs/db-init-job.yaml
+  - jobs/db-init-sql.yaml
+  - jobs/minio-init-job.yaml
+  # Ingress
+  - ingress.yaml
+
+# Pick which infra components this project needs (from ci-baseline)
+components:
+  - ../../baseline/k8s/components/mysql
+  - ../../baseline/k8s/components/redis
+  - ../../baseline/k8s/components/minio
+  - ../../baseline/k8s/components/rabbitmq
+  - ../../baseline/k8s/components/elasticsearch
+  - ../../baseline/k8s/components/vault
+
+commonLabels:
+  app.kubernetes.io/part-of: face-microservice

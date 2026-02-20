@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-service
+  namespace: face-app
+spec:
+  template:
+    spec:
+      containers:
+        - name: backend-service
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 640Mi
+          env:
+            - name: JAVA_OPTS
+              value: "-Xmx384m -Xms256m -XX:+UseG1GC"

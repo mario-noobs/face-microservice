@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - path: patches/backend-resources.yaml
+  - path: patches/face-service-resources.yaml
+  - path: patches/es-resources.yaml
+
+secretGenerator:
+  - name: backend-secret
+    namespace: face-app
+    type: Opaque
+    literals:
+      - DB_PASSWORD=root_password_secret_tcp
+      - JWT_SECRET=dmVyeS1pbXBvcnRhbnQtcGxlYXNlLWNoYW5nZS1pdC1pbi1wcm9kdWN0aW9uLXdpdGgtYXQtbGVhc3QtMjU2LWJpdHM=
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=123456789
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
+      - VAULT_TOKEN=dev-root-token
+  - name: face-service-secret
+    namespace: face-app
+    type: Opaque
+    literals:
+      - MODEL_S3_ACCESS_KEY=admin
+      - MODEL_S3_SECRET_KEY=123456789
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+images:
+  - name: backend-service
+    newName: k3d-registry.localhost:5000/backend-service
+    newTag: latest
+  - name: face-recognition-service
+    newName: k3d-registry.localhost:5000/face-recognition-service
+    newTag: latest
+  - name: gui-app
+    newName: k3d-registry.localhost:5000/gui-app
+    newTag: latest

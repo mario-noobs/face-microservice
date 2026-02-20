@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: face-microservice-apps
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: face-microservice
+spec:
+  project: face-microservice
+  source:
+    repoURL: https://github.com/mario-noobs/face-microservice.git
+    targetRevision: develop
+    path: ci-scripts/k8s/argocd
+    directory:
+      include: 'face-app-*.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

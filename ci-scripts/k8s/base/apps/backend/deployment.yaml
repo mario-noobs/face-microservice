@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-service
+  namespace: face-app
+  labels:
+    app: backend-service
+    app.kubernetes.io/part-of: face-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: backend-service
+        app.kubernetes.io/part-of: face-microservice
+    spec:
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - 'until nc -z mysql.face-infra.svc.cluster.local 3306; do echo "Waiting for MySQL..."; sleep 3; done'
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - 'until nc -z redis.face-infra.svc.cluster.local 6379; do echo "Waiting for Redis..."; sleep 3; done'
+      containers:
+        - name: backend-service
+          image: backend-service:latest
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secret
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi

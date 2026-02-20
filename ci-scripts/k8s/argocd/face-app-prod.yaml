@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: face-app-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: face-microservice
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: face-microservice
+  source:
+    repoURL: https://github.com/mario-noobs/face-microservice.git
+    targetRevision: main
+    path: ci-scripts/k8s/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
