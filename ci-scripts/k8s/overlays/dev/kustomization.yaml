@@ -8,6 +8,8 @@ patches:
   - path: patches/backend-resources.yaml
   - path: patches/face-service-resources.yaml
   - path: patches/es-resources.yaml
+  - path: patches/mysql-secret.yaml
+  - path: patches/minio-secret.yaml
 
 secretGenerator:
   - name: backend-secret
