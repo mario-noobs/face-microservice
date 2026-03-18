@@ -36,37 +36,6 @@ docker-compose logs -f backend-service
 docker-compose --profile logging up -d
 ```
 
-## Quick Start — Kubernetes (k3d + ArgoCD)
-
-```bash
-# Prerequisites: docker, k3d, kubectl
-
-# 1. Create local K8s cluster
-ci-scripts/baseline/k8s/scripts/cluster-create.sh
-
-# 2. Build and push images to local registry
-ci-scripts/baseline/k8s/scripts/build-push-local.sh .
-
-# 3. Install ArgoCD
-ci-scripts/baseline/k8s/scripts/argocd-install.sh
-
-# 4. Deploy via ArgoCD
-kubectl apply -f ci-scripts/k8s/argocd/project.yaml
-kubectl apply -f ci-scripts/k8s/argocd/face-app-dev.yaml
-
-# 5. Add host entry and verify
-echo "127.0.0.1 face.local" | sudo tee -a /etc/hosts
-curl http://face.local/ping
-# {"data":"pong"}
-
-# View ArgoCD UI
-# kubectl port-forward svc/argocd-server -n argocd 8443:443
-# https://localhost:8443 (admin / <password from install script>)
-
-# Teardown
-ci-scripts/baseline/k8s/scripts/cluster-delete.sh
-```
-
 ## Services
 
 | Service | Technology | Port | Description |
@@ -149,11 +118,7 @@ face-microservice/
 ├── email-service/            # Email library (FreeMarker templates)
 ├── ci-scripts/               # CI/CD configuration
 │   ├── baseline/             # Submodule → ci-baseline (shared infra)
-│   ├── ansible/              # Ansible overlay (VM deploy)
-│   └── k8s/                  # K8s overlay (Kubernetes deploy)
-│       ├── base/             # App manifests + infra components
-│       ├── overlays/         # dev / staging / prod
-│       └── argocd/           # ArgoCD Application definitions
+│   └── ansible/              # Ansible overlay (VM deploy)
 ├── logging/                  # Fluent-bit configs
 ├── docker-compose.yml
 ├── nginx.conf
@@ -209,20 +174,11 @@ MAIL_HOST=smtp.gmail.com      MAIL_USERNAME=...       MAIL_PASSWORD=...
 |--------|-----------|----------|
 | **Docker Compose** | docker-compose up | Local development |
 | **Ansible + SSH** | `make deploy-dev` via ci-scripts | VM-based environments |
-| **K8s + ArgoCD** | k3d / EKS / GKE + GitOps | Kubernetes environments |
-
-### CD Pipeline (GitOps)
-
-```
-Code push → CI (test + build image → GHCR)
-         → cd.yml (update image tag in Kustomize overlay)
-         → ArgoCD auto-syncs to cluster
-```
 
 ## Documentation
 
 - **[CLAUDE.md](./CLAUDE.md)** — Full technical documentation (architecture, security, RBAC, scaling)
-- **[ci-scripts/README.md](./ci-scripts/README.md)** — CI/CD configuration (Ansible + K8s overlays)
+- **[ci-scripts/README.md](./ci-scripts/README.md)** — CI/CD configuration (Ansible deploys)
 - **[backend-service/README.md](./backend-service/README.md)** — Backend build, API reference, testing
 - **[gui-app/README.md](./gui-app/README.md)** — Frontend architecture, routing, auth flow
 
