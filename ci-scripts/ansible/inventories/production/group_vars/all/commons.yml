@@ -5,12 +5,14 @@ registry: ghcr.io/mario-noobs
 deploy_user: face
 deploy_dir: "/opt/{{ project_name }}"
 
-# Feature flags
-has_mysql: true
-has_redis: true
-has_minio: true
-has_rabbitmq: true
-has_elasticsearch: true
+# Feature flags — infra managed out of band via scripts/infra-up.sh
+has_mysql: false
+has_redis: false
+has_minio: false
+has_rabbitmq: false
+has_elasticsearch: false
+
+network_external: true
 
 # Observability
 enable_monitoring: true

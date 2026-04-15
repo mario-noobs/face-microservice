@@ -5,12 +5,17 @@ registry: ghcr.io/mario-noobs
 deploy_user: face
 deploy_dir: "/opt/{{ project_name }}"
 
-# Feature flags (which infra services are enabled)
-has_mysql: true
-has_redis: true
-has_minio: true
-has_rabbitmq: true
-has_elasticsearch: true
+# Feature flags — infra is now managed OUT OF BAND via scripts/infra-up.sh
+# on the dev machine. CI only deploys the 3 app containers and joins the
+# pre-existing docker network.
+has_mysql: false
+has_redis: false
+has_minio: false
+has_rabbitmq: false
+has_elasticsearch: false
+
+# App compose joins the shared network created by docker-compose.infra.yml
+network_external: true
 
 # Observability
 enable_monitoring: false
