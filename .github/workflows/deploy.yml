@@ -19,7 +19,7 @@ on:
         options:
           - all
           - backend-service
-          - face-recognition-service
+          - face-ai-service
           - gui-app
       image_tag:
         description: "Image tag to deploy (e.g. sha-abc1234)"

@@ -149,7 +149,7 @@ services:
       - MINIO_SECRET_KEY=123456789
       - MINIO_BUCKET=face-images
       # Face Recognition Service
-      - FACE_SERVICE_URL=http://face-recognition-service:5000
+      - FACE_SERVICE_URL=http://face-ai-service:5000
       - SPRING_PROFILES_ACTIVE=dev
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=dev-root-token
@@ -193,9 +193,9 @@ services:
       start_period: 60s
 
   # ==================== AI Service (Python - Stateless) ====================
-  face-recognition-service:
+  face-ai-service:
     build: ./face-ai-service
-    container_name: face-recognition-service
+    container_name: face-ai-service
     networks:
       - face
     ports:

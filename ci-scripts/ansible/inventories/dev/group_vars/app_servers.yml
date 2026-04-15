@@ -23,7 +23,7 @@ app_services:
       MINIO_ACCESS_KEY: "{{ vault_minio_access_key }}"
       MINIO_SECRET_KEY: "{{ vault_minio_secret_key }}"
       MINIO_BUCKET: "face-images"
-      FACE_SERVICE_URL: "http://face-recognition-service:5000"
+      FACE_SERVICE_URL: "http://face-ai-service:5000"
     resources:
       memory: "640M"
     depends_on:
@@ -32,8 +32,8 @@ app_services:
       - minio
     java_opts: "-Xmx384m -Xms256m -XX:+UseG1GC"
 
-  face-recognition-service:
-    image: "{{ registry }}/face-recognition-service"
+  face-ai-service:
+    image: "{{ registry }}/face-ai-service"
     tag: "latest"
     port: 5000
     env:
