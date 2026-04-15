@@ -95,51 +95,63 @@ docker-compose --profile logging up -d
 
 ## Project Structure
 
+This is an **orchestrator repo**. The three deployable services and the email library live in their own repos; this repo pins what version of each runs in each environment via `versions.yaml`, holds shared infra config, and coordinates deploys.
+
 ```
-face-microservice/
-├── backend-service/          # Java Spring Boot modular monolith
-│   └── src/main/java/com/mario/backend/
-│       ├── auth/             # Authentication, JWT, password reset, invitation
-│       ├── users/            # User profiles, admin user management
-│       ├── rbac/             # Role & permission management
-│       ├── face/             # Face recognition (calls Python AI service)
-│       ├── audit/            # Audit logging pipeline (RabbitMQ → MySQL/ES)
-│       ├── gateway/          # Security config, filters, infrastructure
-│       ├── common/           # Shared DTOs, exceptions
-│       └── logging/          # Distributed tracing, log masking
-├── face-regconition-service/ # Python AI service (RetinaFace + ArcFace)
-├── gui-app/                  # React 18 + TypeScript SPA
-│   └── src/modules/
-│       ├── core/             # Router, Layout, Axios interceptor
-│       ├── auth/             # Login, Register, ForgotPassword, Invitation
-│       ├── home/             # Dashboard, Profile, Audit
-│       ├── face-reg/         # Face register & recognize UI
-│       └── admin/            # User & Role management (SUPERADMIN)
-├── email-service/            # Email library (FreeMarker templates)
-├── ci-scripts/               # CI/CD configuration
-│   ├── baseline/             # Submodule → ci-baseline (shared infra)
-│   └── ansible/              # Ansible overlay (VM deploy)
-├── logging/                  # Fluent-bit configs
-├── docker-compose.yml
+face-microservice/                     # ← orchestrator (this repo)
+├── versions.yaml                      # per-env image tag manifest (source of truth)
+├── docker-compose.yml                 # pulls images from GHCR
+├── docker-compose.override.yml.example  # copy to .override.yml for local source builds
 ├── nginx.conf
-└── init.sql                  # Database seed (roles, permissions)
+├── init.sql                           # MySQL seed (RBAC roles & permissions)
+├── adr/                               # architecture decision records
+├── review/                            # audit, backlog, roadmap
+├── ci-scripts/
+│   ├── baseline/                      # submodule → ci-baseline (shared CI + Ansible)
+│   ├── ansible/                       # project-specific inventories, group_vars
+│   ├── scripts/                       # deploy-{dev,staging,prod,previous}.sh
+│   └── Makefile
+├── .github/workflows/
+│   ├── promote-dev.yml                # receives service dispatch → updates manifest + deploys
+│   ├── rollback.yml                   # workflow_dispatch → roll a service back to HEAD~1
+│   ├── deploy.yml                     # manual deploy (escape hatch for staging/prod)
+│   └── e2e.yml                        # boots docker-compose stack and runs E2E tests
+└── vault/                             # HashiCorp Vault dev seeds
+
+Sibling repos (clone locally if you want to iterate on source):
+  mario-noobs/backend-service          # Java Spring Boot modular monolith
+  mario-noobs/face-ai-service          # Python AI (RetinaFace + ArcFace)
+  mario-noobs/gui-app                  # React 18 + TypeScript SPA
+  mario-noobs/email-service            # Email library JAR (consumed by backend)
 ```
 
-## Development
+## Local Development
+
+The base `docker-compose.yml` uses `image:` references pulled from GHCR. To iterate on source locally, clone the service you want to edit and create a `docker-compose.override.yml`:
 
 ```bash
+# Clone services you want to iterate on (into this dir or as siblings)
+git clone https://github.com/mario-noobs/backend-service.git
+git clone https://github.com/mario-noobs/face-ai-service.git
+git clone https://github.com/mario-noobs/gui-app.git
+
+# Copy override example and adjust build paths
+cp docker-compose.override.yml.example docker-compose.override.yml
+
+# Start stack — docker compose auto-merges the override
+docker-compose up -d
+```
+
+Or run services directly on the host:
+```bash
 # Backend (Java 17+)
-cd backend-service
-./gradlew bootRun
+cd backend-service && ./gradlew bootRun
 
 # Frontend (Node 18+)
-cd gui-app
-pnpm install && pnpm dev
+cd gui-app && pnpm install && pnpm dev
 
 # AI Service (Python 3.10+)
-cd face-regconition-service
-pip install -r requirements.txt
-python app.py
+cd face-ai-service && pip install -r requirements.txt && python app.py
 ```
 
 ## Key Features

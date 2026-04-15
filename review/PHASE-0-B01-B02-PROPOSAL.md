@@ -1,5 +1,7 @@
 # Phase 0 -- B-01 & B-02 Implementation Proposal
 
+> **SUPERSEDED**: The monorepo-shaped design below was replaced by the orchestrator-manifest model in [ADR-005](../adr/ADR-005-orchestrator-versions-manifest.md). Services build and publish images from their own repos (B-01 was already done there); this repo receives `repository_dispatch` events, updates `versions.yaml`, and deploys. Rollback (B-02) uses `git revert` on the manifest plus `make deploy-previous`. Kept for historical trace.
+
 **Goal**: Eliminate manual `image_tag` entry from the deploy workflow and provide a safe, fast rollback path.
 **Backlog**: B-01 (auto build-and-push), B-02 (rollback path)
 **Roadmap**: [Phase 0](ROADMAP.md#phase-0--stabilize-delivery-p0)

@@ -4,53 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Face recognition system with three services: Java Spring Boot backend (auth, RBAC, face orchestration, audit), Python Flask AI service (face detection/recognition with RetinaFace/ArcFace), and React TypeScript SPA frontend. MySQL for persistence, Redis for token blacklist, MinIO for face images, RabbitMQ for audit event pipeline, Elasticsearch for audit search.
+**This is an orchestrator repo.** It pins which image tag of each service runs in each environment (`versions.yaml`), holds shared infra config (compose, nginx, init.sql, Ansible inventories), and coordinates deploys. The three deployable services live in their own GitHub repos:
 
-See `backend-service/CLAUDE.md` and `gui-app/CLAUDE.md` for detailed service-specific guidance.
+- `mario-noobs/backend-service` — Java Spring Boot (auth, RBAC, face orchestration, audit)
+- `mario-noobs/face-ai-service` — Python Flask AI (RetinaFace/ArcFace)
+- `mario-noobs/gui-app` — React TypeScript SPA
+- `mario-noobs/email-service` — library JAR consumed by backend
+
+Infra: MySQL (persistence), Redis (token blacklist), MinIO (face images), RabbitMQ (audit event pipeline), Elasticsearch (audit search).
+
+**Deploy model** (see `adr/ADR-005-orchestrator-versions-manifest.md`): each service CI publishes an image → fires `repository_dispatch` to this repo → `promote-dev.yml` updates `versions.yaml` and deploys. Git log of `versions.yaml` is the deploy timeline. Rollback: `make deploy-previous SERVICE=<name>` or the `rollback.yml` workflow.
+
+Service repos have their own `CLAUDE.md`. Clone them locally if you need to iterate on source.
 
 ## Common Commands
 
 ### Full Stack (Docker Compose)
 ```bash
-docker-compose up -d                  # Start all services
-docker-compose logs -f backend-service  # Tail backend logs
-curl http://localhost:8080/ping       # Health check → {"data":"pong"}
+docker-compose up -d                  # Pulls images from GHCR (or builds if override.yml exists)
+docker-compose logs -f backend-service
+curl http://localhost:8080/ping       # {"data":"pong"}
 ```
 
-### Backend (Java 17 + Spring Boot 3.3.4)
-```bash
-cd backend-service
-./gradlew bootRun                     # Dev server (port 8080)
-./gradlew test                        # Unit + integration tests (Testcontainers)
-./gradlew e2eTest                     # E2E tests (requires docker-compose stack running)
-./gradlew jacocoTestReport            # Coverage report (HTML + XML)
-./gradlew jacocoTestCoverageVerification  # Enforce coverage thresholds
-./gradlew compileJava                 # Compile check only
-```
+For local source iteration, clone the relevant service into this directory (or as a sibling) and copy `docker-compose.override.yml.example` to `docker-compose.override.yml` — it adds `build:` directives that override the `image:` pulls. The override file is gitignored.
 
-Run a single test class:
-```bash
-./gradlew test --tests "com.mario.backend.auth.service.AuthServiceTest"
-```
-
-Coverage: JaCoCo enforces 30% global minimum, 50% for `auth.service` and `auth.security` packages. DTOs, entities, and config classes are excluded.
-
-### Frontend (React 18 + TypeScript + Vite)
-```bash
-cd gui-app
-pnpm install                          # Install dependencies
-pnpm dev                              # Dev server (port 5173)
-pnpm build                            # Production build (tsc -b && vite build)
-pnpm lint                             # ESLint
-npx tsc --noEmit                      # Type check only
-```
-
-### AI Service (Python 3.10+ / Flask)
-```bash
-cd face-ai-service
-pip install -r requirements.txt
-python app.py                         # Dev server (port 5000)
-```
+### Backend / Frontend / AI service
+Work inside the respective service repos (`mario-noobs/backend-service`, `mario-noobs/gui-app`, `mario-noobs/face-ai-service`). Each has its own CLAUDE.md with build/test commands. Their CI publishes images to GHCR on push; the orchestrator promotes to dev automatically.
 
 ### CI/CD Scripts
 ```bash
@@ -108,8 +87,9 @@ src/modules/
 
 ## Deployment
 
-Deployment paths:
-1. **Local dev:** `docker-compose up -d`
-2. **VM (Ansible):** `ci-scripts/make deploy-{dev,staging,prod}` — authoritative path for all environments
+- **Local dev:** `docker-compose up -d`
+- **Auto-deploy to dev:** push to a service repo → service CI publishes image → fires `repository_dispatch` → this repo's `promote-dev.yml` updates `versions.yaml` and deploys via Ansible
+- **Manual deploy to staging/prod:** edit `versions.yaml` for the env, commit, run `make deploy-staging` / `make deploy-prod` (or `deploy.yml` workflow_dispatch)
+- **Rollback:** `make deploy-previous SERVICE=<name> [ENV=dev]` or the `rollback.yml` workflow — reads HEAD~1 of `versions.yaml` and redeploys
 
-CI runs per-service workflows (`.github/workflows/`) using reusable templates from the `ci-scripts/baseline/` submodule.
+See `adr/ADR-005-orchestrator-versions-manifest.md` for the full model. Service CI uses reusable workflows from `ci-scripts/baseline/` (the only remaining submodule).
