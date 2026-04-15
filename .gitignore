@@ -12,3 +12,4 @@ data/.minio.sys/
 *.1
 
 .env
+.claude/
