@@ -1,4 +1,31 @@
 ---
+# Project identity
+project_name: face-microservice
+registry: ghcr.io/mario-noobs
+deploy_user: face
+deploy_dir: "/opt/{{ project_name }}"
+
+# Feature flags
+has_mysql: true
+has_redis: true
+has_minio: true
+
+# Observability
+enable_monitoring: false
+enable_log_rotation: true
+docker_log_max_size: "100m"
+docker_log_max_files: 3
+
+# Docker compose
+compose_file: "docker-compose.yml"
+network_name: "{{ project_name }}"
+
+# Project-specific file paths for baseline roles
+_project_ansible_dir: "{{ inventory_dir | dirname | dirname }}"
+app_deploy_nginx_template: "{{ _project_ansible_dir }}/files/nginx.conf.j2"
+app_deploy_init_sql: "{{ _project_ansible_dir }}/files/init.sql"
+
+# Env-specific
 environment: staging
 domain: "staging.face-app.example.com"
 ssl_enabled: true
