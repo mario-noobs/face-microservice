@@ -2,7 +2,7 @@
 # Project identity
 project_name: face-microservice
 registry: ghcr.io/mario-noobs
-deploy_user: deploy
+deploy_user: face
 deploy_dir: "/opt/{{ project_name }}"
 
 # Feature flags (which infra services are enabled)

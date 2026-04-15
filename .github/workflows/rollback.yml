@@ -80,6 +80,9 @@ jobs:
       service: ${{ inputs.service }}
       image_tag: ${{ needs.find-previous.outputs.prev_tag }}
       ci_scripts_path: ci-scripts
+      tailscale_tags: tag:ci
     secrets:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+      TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+      TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
