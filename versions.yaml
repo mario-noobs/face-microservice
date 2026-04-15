@@ -20,12 +20,10 @@ environments:
     backend-service: latest
     face-ai-service: latest
     gui-app: latest
-
   staging:
     backend-service: latest
     face-ai-service: latest
     gui-app: latest
-
   production:
     backend-service: latest
     face-ai-service: latest
