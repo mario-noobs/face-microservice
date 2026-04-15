@@ -24,12 +24,19 @@ app_services:
       MINIO_SECRET_KEY: "123456789"
       MINIO_BUCKET: "face-images"
       FACE_SERVICE_URL: "http://face-ai-service:5000"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: "guest"
+      RABBITMQ_PASSWORD: "guest"
+      ELASTICSEARCH_URIS: "http://elasticsearch:9200"
     resources:
       memory: "640M"
     depends_on:
       - mysql
       - redis
       - minio
+      - rabbitmq
+      - elasticsearch
     java_opts: "-Xmx384m -Xms256m -XX:+UseG1GC"
 
   face-ai-service:
@@ -97,3 +104,31 @@ infra_services:
     resources:
       memory: "256M"
     health_check_cmd: "curl -f http://localhost:9000/minio/health/live"
+
+  rabbitmq:
+    enabled: "{{ has_rabbitmq }}"
+    image: "rabbitmq:3.13-management-alpine"
+    port: 5672
+    console_port: 15672
+    volumes:
+      - "rabbitmq_data:/var/lib/rabbitmq"
+    resources:
+      memory: "256M"
+    health_check_cmd: "rabbitmq-diagnostics -q ping"
+
+  elasticsearch:
+    enabled: "{{ has_elasticsearch }}"
+    image: "docker.elastic.co/elasticsearch/elasticsearch:8.11.0"
+    port: 9200
+    env:
+      node.name: "elasticsearch"
+      cluster.name: "face-microservice-cluster"
+      discovery.type: "single-node"
+      bootstrap.memory_lock: "true"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      xpack.security.enabled: "false"
+    volumes:
+      - "elasticsearch_data:/usr/share/elasticsearch/data"
+    resources:
+      memory: "768M"
+    health_check_cmd: "curl -sf http://localhost:9200/_cluster/health"

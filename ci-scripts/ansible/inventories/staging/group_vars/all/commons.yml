@@ -9,6 +9,8 @@ deploy_dir: "/opt/{{ project_name }}"
 has_mysql: true
 has_redis: true
 has_minio: true
+has_rabbitmq: true
+has_elasticsearch: true
 
 # Observability
 enable_monitoring: false
