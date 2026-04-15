@@ -1,4 +1,4 @@
-.PHONY: help lint setup deploy-dev deploy-staging deploy-prod check test pre-commit
+.PHONY: help lint setup deploy-dev deploy-staging deploy-prod deploy-previous check test pre-commit
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -23,6 +23,10 @@ deploy-staging: ## Deploy all services to staging
 
 deploy-prod: ## Deploy all services to production
 	./scripts/deploy-prod.sh
+
+deploy-previous: ## Roll SERVICE back to the previous tag (SERVICE=<name> [ENV=dev])
+	@test -n "$(SERVICE)" || { echo "Usage: make deploy-previous SERVICE=<name> [ENV=dev]"; exit 1; }
+	SERVICE=$(SERVICE) ENV=$${ENV:-dev} ./scripts/deploy-previous.sh
 
 pre-commit: ## Run pre-commit on all files
 	pre-commit run --all-files

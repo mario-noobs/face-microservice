@@ -1,0 +1,85 @@
+name: Rollback
+
+# Rolls one service back to the tag pinned in HEAD~1 of versions.yaml for the
+# chosen environment. Commits the rollback as a new manifest entry (rollback
+# IS a deploy event) and redeploys via Ansible.
+#
+# Use this for dev rollbacks. For staging/prod, prefer editing versions.yaml
+# manually and running deploy.yml so the tag choice is explicit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [dev, staging, production]
+      service:
+        description: Service to roll back
+        required: true
+        type: choice
+        options: [backend-service, face-ai-service, gui-app]
+
+concurrency:
+  group: rollback-${{ inputs.environment }}-${{ inputs.service }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  find-previous:
+    name: Find previous tag and commit
+    runs-on: ubuntu-latest
+    outputs:
+      prev_tag: ${{ steps.find.outputs.prev_tag }}
+      cur_tag: ${{ steps.find.outputs.cur_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Find previous tag
+        id: find
+        run: |
+          ENV="${{ inputs.environment }}"
+          SVC="${{ inputs.service }}"
+          CUR=$(yq ".environments.${ENV}.\"${SVC}\"" versions.yaml)
+          PREV=$(git show HEAD~1:versions.yaml | yq ".environments.${ENV}.\"${SVC}\"")
+          if [ "$PREV" = "null" ] || [ -z "$PREV" ]; then
+            echo "No previous version found for ${SVC} on ${ENV}"; exit 1
+          fi
+          if [ "$PREV" = "$CUR" ]; then
+            echo "No rollback needed (previous == current == ${CUR})"; exit 1
+          fi
+          echo "cur_tag=$CUR"   >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$PREV" >> "$GITHUB_OUTPUT"
+
+      - name: Commit rollback manifest
+        run: |
+          yq eval -i ".environments.${{ inputs.environment }}.\"${{ inputs.service }}\" = \"${{ steps.find.outputs.prev_tag }}\"" versions.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add versions.yaml
+          git commit -m "rollback(${{ inputs.environment }}): ${{ inputs.service }} ${{ steps.find.outputs.cur_tag }} -> ${{ steps.find.outputs.prev_tag }}"
+          git push origin develop
+
+  deploy:
+    name: Deploy rolled-back tag
+    needs: find-previous
+    uses: mario-noobs/ci-baseline/.github/workflows/_deploy.yml@main
+    with:
+      environment: ${{ inputs.environment }}
+      service: ${{ inputs.service }}
+      image_tag: ${{ needs.find-previous.outputs.prev_tag }}
+      ci_scripts_path: ci-scripts
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}

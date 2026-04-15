@@ -1,0 +1,79 @@
+name: Promote to dev
+
+# Triggered by each service repo (backend-service, face-ai-service, gui-app)
+# after its CI publishes a new image to GHCR. Updates versions.yaml and
+# redeploys the one service that changed.
+#
+# Expected client_payload:
+#   { "service": "backend-service", "tag": "sha-abc1234" }
+
+on:
+  repository_dispatch:
+    types: [service-image-published]
+
+concurrency:
+  group: promote-dev-${{ github.event.client_payload.service }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    name: Update manifest + commit
+    runs-on: ubuntu-latest
+    outputs:
+      service: ${{ steps.payload.outputs.service }}
+      tag: ${{ steps.payload.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate payload
+        id: payload
+        run: |
+          SERVICE="${{ github.event.client_payload.service }}"
+          TAG="${{ github.event.client_payload.tag }}"
+          case "$SERVICE" in
+            backend-service|face-ai-service|gui-app) ;;
+            *) echo "Unknown service: $SERVICE"; exit 1 ;;
+          esac
+          if [ -z "$TAG" ]; then echo "tag is empty"; exit 1; fi
+          echo "service=$SERVICE" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Update versions.yaml
+        run: |
+          yq eval -i ".environments.dev.\"${{ steps.payload.outputs.service }}\" = \"${{ steps.payload.outputs.tag }}\"" versions.yaml
+
+      - name: Commit manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add versions.yaml
+          if git diff --cached --quiet; then
+            echo "No change — same tag already pinned. Skipping commit."
+          else
+            git commit -m "chore(dev): promote ${{ steps.payload.outputs.service }} to ${{ steps.payload.outputs.tag }}"
+            git push origin develop
+          fi
+
+  deploy:
+    name: Deploy to dev
+    needs: promote
+    uses: mario-noobs/ci-baseline/.github/workflows/_deploy.yml@main
+    with:
+      environment: dev
+      service: ${{ needs.promote.outputs.service }}
+      image_tag: ${{ needs.promote.outputs.tag }}
+      ci_scripts_path: ci-scripts
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}

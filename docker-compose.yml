@@ -121,9 +121,7 @@ services:
 
   # ==================== Backend (Java Modular Monolith) ====================
   backend-service:
-    build:
-      context: ./backend-service
-      dockerfile: Dockerfile
+    image: ghcr.io/mario-noobs/backend-service:${BACKEND_SERVICE_TAG:-latest}
     container_name: backend-service
     ports:
       - "8080:8080"
@@ -194,7 +192,7 @@ services:
 
   # ==================== AI Service (Python - Stateless) ====================
   face-ai-service:
-    build: ./face-ai-service
+    image: ghcr.io/mario-noobs/face-ai-service:${FACE_AI_SERVICE_TAG:-latest}
     container_name: face-ai-service
     networks:
       - face
@@ -223,9 +221,9 @@ services:
       start_period: 120s
 
   # ==================== Frontend ====================
-  app-fe:
-    build: ./gui-app
-    container_name: app-fe
+  gui-app:
+    image: ghcr.io/mario-noobs/gui-app:${GUI_APP_TAG:-latest}
+    container_name: gui-app
     ports:
       - "80:80"
     networks:

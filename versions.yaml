@@ -1,0 +1,32 @@
+# Source of truth for which image tags run in each environment.
+#
+# Each commit to this file is a deployment event. The git log of
+# versions.yaml IS the deployment history — use `git log --follow versions.yaml`
+# to see every promotion.
+#
+# Rollback: `make deploy-previous` redeploys the tags from HEAD~1 of this file.
+#
+# Automation:
+#   - dev is updated automatically by .github/workflows/promote-dev.yml when a
+#     service publishes a new image (via repository_dispatch).
+#   - staging and production are updated manually — edit this file, commit,
+#     run `make deploy-staging` or `make deploy-prod`.
+#
+# Services listed here must match app_services keys in
+# ci-scripts/ansible/inventories/<env>/group_vars/app_servers.yml.
+
+environments:
+  dev:
+    backend-service: latest
+    face-ai-service: latest
+    gui-app: latest
+
+  staging:
+    backend-service: latest
+    face-ai-service: latest
+    gui-app: latest
+
+  production:
+    backend-service: latest
+    face-ai-service: latest
+    gui-app: latest

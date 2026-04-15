@@ -1,0 +1,25 @@
+# Copy to docker-compose.override.yml to enable local source builds.
+#
+# docker-compose.override.yml is gitignored. It auto-merges with
+# docker-compose.yml when you run `docker compose up`. Its `build:`
+# directives override the `image:` from the base file, so local source
+# changes get rebuilt instead of pulling from GHCR.
+#
+# Expectation: service repos are checked out as sibling directories.
+# Adjust the paths below to match your local layout.
+
+services:
+  backend-service:
+    build:
+      context: ./backend-service         # or ../backend-service if sibling
+      dockerfile: Dockerfile
+
+  face-ai-service:
+    build:
+      context: ./face-ai-service
+      dockerfile: Dockerfile
+
+  gui-app:
+    build:
+      context: ./gui-app
+      dockerfile: Dockerfile

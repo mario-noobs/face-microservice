@@ -13,3 +13,4 @@ data/.minio.sys/
 
 .env
 .claude/
+docker-compose.override.yml
