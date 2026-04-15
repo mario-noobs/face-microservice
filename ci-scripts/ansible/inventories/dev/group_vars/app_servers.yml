@@ -13,15 +13,15 @@ app_services:
       DB_PORT: "3306"
       DB_NAME: "backend_db"
       DB_USERNAME: "root"
-      DB_PASSWORD: "{{ vault_db_password }}"
+      DB_PASSWORD: "root_password_secret_tcp"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
-      JWT_SECRET: "{{ vault_jwt_secret }}"
+      JWT_SECRET: "dmVyeS1pbXBvcnRhbnQtcGxlYXNlLWNoYW5nZS1pdC1pbi1wcm9kdWN0aW9uLXdpdGgtYXQtbGVhc3QtMjU2LWJpdHM="
       JWT_ACCESS_TOKEN_EXPIRATION: "3600000"
       JWT_REFRESH_TOKEN_EXPIRATION: "604800000"
       MINIO_ENDPOINT: "http://minio:9000"
-      MINIO_ACCESS_KEY: "{{ vault_minio_access_key }}"
-      MINIO_SECRET_KEY: "{{ vault_minio_secret_key }}"
+      MINIO_ACCESS_KEY: "admin"
+      MINIO_SECRET_KEY: "123456789"
       MINIO_BUCKET: "face-images"
       FACE_SERVICE_URL: "http://face-ai-service:5000"
     resources:
@@ -61,7 +61,7 @@ infra_services:
     image: "mysql:8.0"
     port: 3306
     env:
-      MYSQL_ROOT_PASSWORD: "{{ vault_db_password }}"
+      MYSQL_ROOT_PASSWORD: "root_password_secret_tcp"
       MYSQL_DATABASE: "backend_db"
     volumes:
       - "mysql_data:/var/lib/mysql"
@@ -89,8 +89,8 @@ infra_services:
     port: 9000
     console_port: 9001
     env:
-      MINIO_ROOT_USER: "{{ vault_minio_access_key }}"
-      MINIO_ROOT_PASSWORD: "{{ vault_minio_secret_key }}"
+      MINIO_ROOT_USER: "admin"
+      MINIO_ROOT_PASSWORD: "123456789"
     volumes:
       - "minio_data:/data"
     command: "server /data --console-address ':9001'"
